@@ -1,5 +1,5 @@
 import { chromium } from '@playwright/test';
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import { mkdtemp, writeFile, readFile, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -44,17 +44,35 @@ const port = await new Promise((resolvePort) => {
 const executable =
   process.env.TONALIA_TEST_EXECUTABLE || resolve('target/release/tonalia-desktop.exe');
 const offline = process.env.TONALIA_TEST_OFFLINE === '1';
+const nativePickers = process.env.TONALIA_TEST_PICKERS === '1';
 const reportFile = process.env.TONALIA_TEST_REPORT || 'docs/implementation/native-smoke.json';
 const networkArguments = offline
   ? ' --proxy-server=http://127.0.0.1:9 --proxy-bypass-list="*.localhost;localhost;127.0.0.1" --host-resolver-rules="MAP * ~NOTFOUND, EXCLUDE ipc.localhost, EXCLUDE tauri.localhost, EXCLUDE 127.0.0.1"'
   : '';
-const child = spawn(executable, [inputPath], {
+const child = spawn(executable, nativePickers ? [] : [inputPath], {
   env: {
     ...process.env,
+    WEBVIEW2_USER_DATA_FOLDER: join(temp, 'webview-profile'),
     WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}${networkArguments}`,
   },
   stdio: 'ignore',
 });
+const fileDialog = (path) =>
+  execFileSync(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-ExecutionPolicy',
+      'RemoteSigned',
+      '-File',
+      resolve('tests/native/file-dialog.ps1'),
+      '-ApplicationPid',
+      String(child.pid),
+      '-FilePath',
+      path,
+    ],
+    { stdio: 'inherit', timeout: 30000 },
+  );
 let browser;
 try {
   let available = false;
@@ -101,6 +119,10 @@ try {
   });
   await page.getByRole('button', { name: 'Open WAV', exact: true }).waitFor({ timeout: 15000 });
   const opened = performance.now();
+  if (nativePickers) {
+    await page.getByRole('button', { name: 'Open WAV', exact: true }).evaluate((el) => el.click());
+    fileDialog(inputPath);
+  }
   await page.getByText('SHA-256 verified', { exact: true }).waitFor({ timeout: 20000 });
   await page.getByText(/2048 FFT/).waitFor({ timeout: 20000 });
   const loadMs = performance.now() - opened;
@@ -153,15 +175,23 @@ try {
       featherHz: 48000 / 2048,
     },
   };
-  await page.getByRole('button', { name: 'Close export' }).evaluate((el) => el.click());
-  await page.evaluate(
-    ({ outputPath, layer }) =>
-      window.__TAURI_INTERNALS__.invoke('export_audio', {
-        id: '1',
-        request: { path: outputPath, layers: [layer], start: 0, end: 192000, bits: 64 },
-      }),
-    { outputPath, layer },
-  );
+  if (nativePickers) {
+    await page
+      .getByRole('button', { name: 'Export WAV', exact: true })
+      .evaluate((el) => el.click());
+    fileDialog(outputPath);
+    await page.getByRole('dialog').waitFor({ state: 'hidden', timeout: 30000 });
+  } else {
+    await page.getByRole('button', { name: 'Close export' }).evaluate((el) => el.click());
+    await page.evaluate(
+      ({ outputPath, layer }) =>
+        window.__TAURI_INTERNALS__.invoke('export_audio', {
+          id: '1',
+          request: { path: outputPath, layers: [layer], start: 0, end: 192000, bits: 64 },
+        }),
+      { outputPath, layer },
+    );
+  }
   const output = await readFile(outputPath);
   assert.equal(output.readUInt32LE(24), rate);
   assert.equal(output.readUInt16LE(34), 64);
@@ -219,14 +249,20 @@ try {
     layers: [layer],
     view: { start: 0, end: frames, low: 20, high: 24000, log: true },
   };
-  await page.evaluate(
-    ({ projectPath, manifest }) =>
-      window.__TAURI_INTERNALS__.invoke('save_project', {
-        path: projectPath,
-        contents: JSON.stringify(manifest),
-      }),
-    { projectPath, manifest },
-  );
+  if (nativePickers) {
+    await page.getByRole('button', { name: 'Project', exact: true }).evaluate((el) => el.click());
+    await page.getByRole('button', { name: /Save project/ }).evaluate((el) => el.click());
+    fileDialog(projectPath);
+    await page.getByText(/Project saved\. Keep the original/).waitFor();
+  } else
+    await page.evaluate(
+      ({ projectPath, manifest }) =>
+        window.__TAURI_INTERNALS__.invoke('save_project', {
+          path: projectPath,
+          contents: JSON.stringify(manifest),
+        }),
+      { projectPath, manifest },
+    );
   const project = JSON.parse(await readFile(projectPath, 'utf8'));
   assert.equal(project.layers.length, 1);
   assert.equal(project.source.sha256, hash(input));
@@ -266,6 +302,7 @@ try {
     arch: process.arch,
     webview: browser.version(),
     nativeIpc: true,
+    nativeOpenExportAndProjectPickers: nativePickers,
     executable: executable.replace(process.env.USERPROFILE || '\u0000', '%USERPROFILE%'),
     offlineWebView: offline,
     networkIsolation: offline

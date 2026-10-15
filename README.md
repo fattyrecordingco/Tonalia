@@ -2,7 +2,7 @@
 
 **Nondestructive spectral audio editing, developed by Fatty Recording Co.**
 
-Tonalia 0.1 is a working development release with a shared Rust audio core, a React/TypeScript workspace, a Windows Tauri desktop application, and a browser client using the same DSP through WebAssembly. It is the first functional slice of the [master plan](docs/planning/README.md), not a completed Audition replacement.
+Tonalia 0.1 is a working development release with a shared Rust audio core, a React/TypeScript workspace, desktop packages for Windows/macOS/Linux, and a browser client using the same DSP through WebAssembly. It is the first functional slice of the [master plan](docs/planning/README.md), not a completed Audition replacement.
 
 ## Download the desktop app
 
@@ -18,6 +18,8 @@ Installers are published on the [Tonalia 0.1.0 release page](https://github.com/
 
 See [installation, chip selection, offline use and checksum instructions](docs/INSTALL.md). These are development builds: Windows is unsigned and Mac builds are ad-hoc signed without Apple notarization. The Windows setup includes the WebView2 offline installer. Linux prerequisites must be available locally for a fully offline installation.
 
+All platform packaging/installation checks passed on native GitHub runners. The published Windows installer was also downloaded, installed and tested through its native Open/Save dialogs with outbound WebView internet blocked. The published Debian package and AppImage ran on Ubuntu 24.04 under WSL2 with no internet interface. See the [distribution verification record](docs/implementation/DISTRIBUTION.md) for evidence and limits.
+
 ## What works
 
 - Open mono/stereo RIFF WAV or RF64: PCM 8/16/24/32-bit and IEEE float 32/64-bit, at 8–192 kHz. Preserve the source's samples, channels, and sample rate.
@@ -25,7 +27,7 @@ See [installation, chip selection, offline use and checksum instructions](docs/I
 - Navigate with overview, pan, pointer-anchored zoom, and fit commands. Viewport analysis streams bounded ranges instead of loading a whole recording into a JavaScript audio buffer.
 - Select time/frequency rectangles, freeform lassos, and weighted brush strokes. Set numeric bounds, channel scope, and supported feathering.
 - Apply actual spectral gain or attenuation as ordered, reversible layers. Enable/bypass, reorder, name, remove, undo and redo layers.
-- Listen to the original, processed result, or removed signal. Windows desktop uses native CPAL output for files opened through its native picker; the browser uses streamed AudioWorklet output.
+- Listen to the original, processed result, or removed signal. Desktop sources use native CPAL output; the browser uses streamed AudioWorklet output.
 - Export the layer stack at the original rate and channel layout as 32/64-bit float WAV, with RF64 headers for large outputs. Desktop writes a temporary output and finalizes it only when complete; it refuses to overwrite the source path.
 - Save project manifests with source SHA-256 identity. Reopening requires the matching original WAV before restoring edits. Projects do not embed media.
 - Render the spectral raster with WebGL2 and fall back to Canvas2D if graphics are unavailable/lost. GPU availability cannot change the DSP result.
@@ -108,7 +110,7 @@ npm run desktop:build
 node tests/native/smoke.mjs
 ```
 
-The native smoke test opens a temporary generated recording, plays a short quiet preview through the default device, checks a native export/project, and closes its own app instance. It opens the source through the supported command-line argument and invokes native export/project commands directly. Native file pickers require separate manual verification. It uses a temporary WebView debugging port only for that process. See [implementation status and evidence](docs/implementation/STATUS.md).
+The native smoke test opens a temporary generated recording, plays a short quiet preview through the default device, checks a native export/project, and closes its own app instance. By default it uses command-line open and direct export/project IPC. Set `TONALIA_TEST_PICKERS=1` on Windows to exercise the actual native Open WAV, Export WAV and Save Project dialogs; this mode briefly focuses the test application's dialogs. Set `TONALIA_TEST_EXECUTABLE` to the installed executable and `TONALIA_TEST_OFFLINE=1` to block outbound WebView internet while preserving local IPC. It uses an isolated temporary WebView profile/debugging port for the test process. See [distribution verification](docs/implementation/DISTRIBUTION.md) and [implementation status](docs/implementation/STATUS.md).
 
 ## Current limits
 

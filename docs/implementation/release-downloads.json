@@ -1,0 +1,43 @@
+{
+  "tag": "v0.1.0",
+  "date": "2026-10-15T12:18:20.108Z",
+  "authenticationRequired": false,
+  "assets": [
+    {
+      "name": "Tonalia_0.1.0_windows_x64_setup.exe",
+      "url": "https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_windows_x64_setup.exe",
+      "status": 200,
+      "bytes": 219515798,
+      "sha256": "6c83428e1c2e6154a0cd0e1ff684b98dfb3e89df1c6be4ec73674bc41a79818e",
+      "checksumVerified": true
+    },
+    {
+      "name": "Tonalia_0.1.0_linux_amd64.deb",
+      "url": "https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_linux_amd64.deb",
+      "status": 200,
+      "bytes": 3530708,
+      "sha256": "a128fbac242346a30250cad8796bf7d9d387e5608d146b6861acf48578f5a74e",
+      "checksumVerified": true
+    },
+    {
+      "name": "Tonalia_0.1.0_linux_x86_64.AppImage",
+      "url": "https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_linux_x86_64.AppImage",
+      "status": 200,
+      "bytes": 93035000,
+      "sha256": "1af768b8f9baf828dec77332f62c39fbe781616b77e30658ced525b9a5246c5d",
+      "checksumVerified": true
+    },
+    {
+      "name": "Tonalia_0.1.0_macos_apple_silicon.dmg",
+      "url": "https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_macos_apple_silicon.dmg",
+      "status": 200,
+      "bytes": 3445328
+    },
+    {
+      "name": "Tonalia_0.1.0_macos_intel.dmg",
+      "url": "https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_macos_intel.dmg",
+      "status": 200,
+      "bytes": 3804440
+    }
+  ]
+}

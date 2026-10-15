@@ -1,17 +1,42 @@
 {
   "version": "0.1.0",
-  "platform": "Windows x64",
-  "signed": false,
+  "tag": "v0.1.0",
+  "sourceCommit": "6d641dc457a2162c58e840a1692181edf1640bb6",
+  "workflow": "https://github.com/fattyrecordingco/Tonalia/actions/runs/38731999630",
+  "release": "https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.1.0",
+  "prerelease": true,
+  "windowsSigned": false,
+  "macOSNotarized": false,
   "artifacts": [
     {
-      "path": "target/release/tonalia-desktop.exe",
-      "bytes": 10568192,
-      "sha256": "426178bdceea6ccaf9af3f1887db60f974eabbcc178ed6312d71a2e0bcfbf254"
+      "name": "Tonalia_0.1.0_linux_amd64.deb",
+      "bytes": 3530708,
+      "sha256": "a128fbac242346a30250cad8796bf7d9d387e5608d146b6861acf48578f5a74e",
+      "url": "https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_linux_amd64.deb"
     },
     {
-      "path": "target/release/bundle/nsis/Tonalia_0.1.0_x64-setup.exe",
-      "bytes": 2639984,
-      "sha256": "4a3673eb8c2f71273794ae3b2a674fd2bfe3948aed3ce2fecee02bd810cc6ccd"
+      "name": "Tonalia_0.1.0_linux_x86_64.AppImage",
+      "bytes": 93035000,
+      "sha256": "1af768b8f9baf828dec77332f62c39fbe781616b77e30658ced525b9a5246c5d",
+      "url": "https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_linux_x86_64.AppImage"
+    },
+    {
+      "name": "Tonalia_0.1.0_macos_apple_silicon.dmg",
+      "bytes": 3445328,
+      "sha256": "d6bf546563131949433df2da68aa34dd350df5998e70b56091054439cc231ca4",
+      "url": "https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_macos_apple_silicon.dmg"
+    },
+    {
+      "name": "Tonalia_0.1.0_macos_intel.dmg",
+      "bytes": 3804440,
+      "sha256": "e8f2413938188b76292da45dbf2bc382190e6339e3a3e3aa997194988df5b797",
+      "url": "https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_macos_intel.dmg"
+    },
+    {
+      "name": "Tonalia_0.1.0_windows_x64_setup.exe",
+      "bytes": 219515798,
+      "sha256": "6c83428e1c2e6154a0cd0e1ff684b98dfb3e89df1c6be4ec73674bc41a79818e",
+      "url": "https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_windows_x64_setup.exe"
     }
   ]
 }

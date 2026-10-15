@@ -1,0 +1,17 @@
+{
+  "channels": 2,
+  "frontendMounted": true,
+  "leftGainMaxError": 7.0781590033597305e-9,
+  "origin": "http://tauri.localhost",
+  "passed": true,
+  "renderedFrames": 4096,
+  "sampleRate": 48000,
+  "timestamp": "2026-10-15T12:13:04.511Z",
+  "untouchedRightChannelMaxError": 0,
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+  "wasmLoaded": true,
+  "workerAnalysis": true,
+  "platform": "windows",
+  "installedPackage": true,
+  "networkIsolation": "Offline browser/installed-app check is run separately on the Windows owner machine."
+}

@@ -1,0 +1,31 @@
+{
+  "channels": 2,
+  "frontendMounted": true,
+  "leftGainMaxError": 7.0781590033597305e-9,
+  "origin": "tauri://localhost",
+  "passed": true,
+  "renderedFrames": 4096,
+  "sampleRate": 48000,
+  "timestamp": "2026-10-15T12:10:51.066Z",
+  "untouchedRightChannelMaxError": 0,
+  "userAgent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/60.5 Safari/605.1.15",
+  "wasmLoaded": true,
+  "workerAnalysis": true,
+  "platform": "linux",
+  "installedPackage": true,
+  "networkIsolation": "unshare network namespace",
+  "appImage": {
+    "channels": 2,
+    "frontendMounted": true,
+    "leftGainMaxError": 7.0781590033597305e-9,
+    "origin": "tauri://localhost",
+    "passed": true,
+    "renderedFrames": 4096,
+    "sampleRate": 48000,
+    "timestamp": "2026-10-15T12:10:53.361Z",
+    "untouchedRightChannelMaxError": 0,
+    "userAgent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/60.5 Safari/605.1.15",
+    "wasmLoaded": true,
+    "workerAnalysis": true
+  }
+}

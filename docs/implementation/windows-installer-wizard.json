@@ -1,0 +1,9 @@
+{
+    "Installed":  true,
+    "Executable":  "%USERPROFILE%\\AppData\\Local\\Tonalia\\tonalia-desktop.exe",
+    "Installer":  "%USERPROFILE%\\Downloads\\Tonalia-0.1.0\\Tonalia_0.1.0_windows_x64_setup.exe",
+    "InstallerSha256":  "6c83428e1c2e6154a0cd0e1ff684b98dfb3e89df1c6be4ec73674bc41a79818e",
+    "InteractiveActions":  [
+
+                           ]
+}

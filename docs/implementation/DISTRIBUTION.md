@@ -1,0 +1,43 @@
+# Distribution and offline verification — 0.1.0
+
+**Published 15 October 2026.** [Official release](https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.1.0) · [Download/install guide](../INSTALL.md) · [Successful native build workflow](https://github.com/fattyrecordingco/Tonalia/actions/runs/38731999630).
+
+The release contains Windows x64 NSIS setup, separate Apple Silicon/Intel Mac DMGs, Linux amd64 Debian package and x86-64 AppImage. [Artifact sizes, SHA-256 hashes and source commit](build-artifacts.json) identify the exact published binaries. This is a development prerelease. Windows is unsigned; Mac packages are ad-hoc signed and not notarized. No binaries were substituted after their release checks.
+
+## Native build and installed-package checks
+
+| Package | Build/install environment | Verification |
+| --- | --- | --- |
+| Windows x64 setup | GitHub native Windows runner | Built setup with embedded WebView2 offline installer; installed through NSIS; installed frontend/worker/WASM analysis and measured gain check passed. [Report](release-verification-windows.json) |
+| Mac Apple Silicon DMG | GitHub macOS 14 ARM runner | Mounted the DMG, accepted the licence, copied into Applications, launched installed app with outbound IP connections denied; frontend/worker/WASM and measured gain check passed. [Report](release-verification-macos-arm64.json) |
+| Mac Intel DMG | GitHub macOS 15 Intel runner | Same installed-app/network-restricted checks on Intel. [Report](release-verification-macos-x64.json) |
+| Linux Debian package | GitHub Ubuntu 22.04 x64 runner | Installed the `.deb`, launched `/usr/bin/tonalia-desktop` under Xvfb in a network namespace with no internet interface; frontend/worker/WASM and measured gain check passed. [Report](release-verification-linux.json) |
+| Linux AppImage | GitHub Ubuntu 22.04 x64 runner | Started the actual AppImage in extraction mode in the same network isolation; frontend/worker/WASM and measured gain check passed. See `appImage` in the Linux report. |
+
+All four platform jobs also ran the 17 core numerical tests. The Windows release job ran the nine browser integration tests. The workflow withheld publication until all jobs passed. Per-platform installed-package reports and SHA-256 checksums are attached to the release.
+
+The opt-in `--installation-check <new-report-path.json>` mode verifies that the React workspace mounts, the bundled worker and WASM initialize, a real stereo WAV can be decoded/analyzed, and a left-channel −6 dB layer is applied while the right channel remains exact. It does not play device audio. Normal startup performs no diagnostic render or report write. A caller cannot choose an arbitrary report path through IPC: the path must be supplied at process launch.
+
+The first Mac installation attempt stopped at the DMG licence prompt. The harness was corrected to supply acceptance, and both native Mac checks then passed. Earlier failed workflow runs remain visible in Actions; the linked successful run is the release evidence. No release installers had been published during that correction.
+
+## Public downloads and installation on the owner machine
+
+[Public download checks](release-downloads.json) record HTTP 200 for all five direct installer links without credentials. Windows setup, Linux `.deb` and Linux AppImage were downloaded from the published release into the user's Downloads folder, and their SHA-256 hashes matched the published checksums. Mac DMGs were installed/tested on native CI runners; no local Mac hardware was available.
+
+**Windows:** the published setup program was opened through its regular visible installer, completed successfully and installed `%LOCALAPPDATA%\Tonalia\tonalia-desktop.exe`. The app registered as **Tonalia 0.1.0, Fatty Recording Co** in Installed Apps and created the Start menu shortcut. [Installer record](windows-installer-wizard.json).
+
+The installed executable was then tested with a fresh temporary WebView profile. Internet-facing HTTP(S) was directed to an unreachable per-process proxy, external DNS was denied, and browser routing also rejected external origins; local Tauri IPC remained available. No external requests occurred. The test used the **actual native Open WAV, Export WAV and Save Project dialogs**. It played a short quiet native preview, saved a project, exported a 48 kHz stereo float64 WAV and verified source/overwrite protection. [Installed Windows report](windows-installed-offline.json) · [Actual installed workspace](windows-installed-offline.png).
+
+Measured attenuation was **−5.9999996705 dB** for the intended −6 dB left-channel edit. The untouched right channel and samples outside processing support had maximum absolute error **0**. The original WAV bytes remained unchanged. The native playback clock advanced without reported playback errors. No Vite development/preview server was listening on ports 1420/1421 during the installed-app test.
+
+**Linux on the same machine:** the published Debian package was installed normally with `apt`, which identified the package as `tonalia` version `0.1.0`. The installed executable and published AppImage both ran under Ubuntu 24.04 / WSL2 / WSLg in a new network namespace with no internet interface. Both passed the frontend, WASM, analysis and measured processing checks. The AppImage ran through its normal FUSE launch in this local check. [Debian report](linux-deb-installed-offline.json) · [AppImage report](linux-appimage-installed-offline.json).
+
+The Linux verification processes used X11 through WSLg and disabled the DMABUF renderer for that process to accommodate the virtual display. This setting was not made global. Those tests do not qualify physical Linux audio devices or all graphics configurations.
+
+## Offline behavior and limits
+
+All application assets, fonts, WASM and native DSP are packaged. Local editing, analysis, monitoring, project saving and WAV export need no account, activation, server or internet service. Source audio that exists only in a cloud provider must be downloaded before offline editing. The Windows package includes the WebView2 offline prerequisite installer; Mac uses its OS WebKit runtime. Missing Linux system dependencies must be supplied through a package manager or local mirror before a fully offline install.
+
+The owner machine's entire internet connection was not disabled. Windows testing blocked internet for the test WebView while retaining local IPC; Linux used kernel network namespaces. Mac automated checks applied a sandbox policy denying outbound IP connections. OS runtime update services are separate from Tonalia's editing functionality.
+
+These are installation, startup, numerical and targeted workflow checks. They do not establish Audition parity, full OS-version compatibility, professional device latency, physical loopback quality, extended sessions, Gatekeeper/SmartScreen policy compatibility, or clean-machine installation with an absent WebView runtime. Production signing/notarization and broader device/OS qualification remain release work.

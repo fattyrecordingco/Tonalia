@@ -1,0 +1,17 @@
+{
+  "channels": 2,
+  "frontendMounted": true,
+  "leftGainMaxError": 7.0781590033597305e-9,
+  "origin": "tauri://localhost",
+  "passed": true,
+  "renderedFrames": 4096,
+  "sampleRate": 48000,
+  "timestamp": "2026-10-15T12:11:31.785Z",
+  "untouchedRightChannelMaxError": 0,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)",
+  "wasmLoaded": true,
+  "workerAnalysis": true,
+  "platform": "macos-arm64",
+  "installedPackage": true,
+  "networkIsolation": "sandbox-exec outbound IP denial"
+}

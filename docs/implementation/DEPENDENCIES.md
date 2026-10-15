@@ -6,6 +6,6 @@ Exact dependency resolutions are recorded in `Cargo.lock` and `package-lock.json
 
 The bundled DM Sans font is distributed under the SIL Open Font License. React is MIT licensed; Lucide uses the ISC licence. Rust/Tauri dependencies include MIT and/or Apache-2.0 packages. Preserve each package's original licence/notice when redistributing; the project's MIT licence does not replace those terms. Inspect the exact package versions and transitive dependencies for each distributable release.
 
-`wasm-pack` is development tooling. The npm wrapper was updated to 0.15.0 after the older wrapper's dependency audit failed; the final npm audit must be recorded with the implementation checks. No installer or source has been published to GitHub by this task.
+`wasm-pack` is development tooling. The npm wrapper was updated to 0.15.0 after the older wrapper's dependency audit failed. The local npm audit reported zero vulnerabilities at the implementation check. Source and platform installers are now published; see [distribution verification](DISTRIBUTION.md).
 
 This file is an engineering inventory, not a completed third-party licence/compliance audit for a commercial release.

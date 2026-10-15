@@ -2,6 +2,8 @@
 
 **Development release — 15 October 2026.** Implementation was authorized after the research package. This release provides actual local spectral gain editing, native playback and file export. The original [roadmap](../planning/07-roadmap-and-backlog.md) remains the specification for the larger product; no phase or Audition parity gate is declared complete by this release.
 
+**Distribution update:** [0.1.0 is published](https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.1.0) for Windows x64, Mac Apple Silicon/Intel, and Linux Debian/AppImage. All native packaging and installed-app checks passed. The published Windows and Linux downloads were also installed and tested offline on the owner machine (Linux under WSL2). See [distribution evidence and limitations](DISTRIBUTION.md) and [download instructions](../INSTALL.md). The tables below retain the original engine/editor verification scope.
+
 ## Delivered behavior
 
 | Area | Implemented | Current boundary |
@@ -14,7 +16,7 @@
 | Projects | Schema-1 JSON snapshots, source SHA-256 check and relink, editable gain stack | Explicit save only; no journal, autosave, crash recovery, embedded audio or migration framework |
 | Export | Source-rate/channel float32/64 WAV/RF64; same Rust renderer; Windows temporary-file finalization and source-path protection | No integer/dither export or metadata preservation; physical >4 GiB files not qualified |
 | Interface | Original dark workspace, layers/inspector, tool shortcuts, zoom/pan, overview, numeric alternatives, WebGL2 display with Canvas2D fallback | No WebGPU, remote collaboration, revision comparison, AI or formal usability/accessibility qualification |
-| Distribution | Browser production assets, Windows x64 standalone executable and NSIS installer | Unsigned local development builds; macOS/Linux and installer lifecycle not qualified |
+| Distribution | Browser assets, Windows x64 setup, Apple Silicon/Intel DMG, Linux Debian/AppImage | Development prerelease; unsigned Windows / unnotarized Mac; installed-app checks pass, broader installer/device qualification remains |
 
 Original recordings are opened read-only. Display settings cannot change processing parameters. Monitor conversion uses f32 and a bounded sinc converter; export retains the source sample rate and uses f64 processing. Processing is local, with no server or uploaded audio.
 
@@ -34,7 +36,7 @@ Checks ran locally on Windows x64 using Node 24.14.0, Rust 1.94.0, Chrome, and t
 
 The packaged native fixture is four seconds of 48 kHz stereo 16-bit PCM, with a 937.5 Hz tone and opposite channel polarity. Its left-only −6 dB region exported at **−5.9999996705 dB**; the untouched right channel and samples outside processing support had maximum absolute error **0** in float64 output. Source bytes remained unchanged. The test also checks that an unaccepted replacement source can be released without invalidating the current recording. The JSON report records the actual WebView version, timing and transport observation.
 
-Native export/project commands are invoked directly by the smoke test, while browser tests exercise the web export/project flows. Native file-picker interaction still requires manual verification. Playback evidence is successful device submission and consumed-frame clock progression; physical loopback, audibility, latency and dropout performance have not been measured. The source-load time in the report is one observation and is not a performance guarantee.
+The original native export/project checks invoked commands directly. The subsequent [installed Windows test](windows-installed-offline.json) additionally used the actual native Open WAV, Export WAV and Save Project dialogs with outbound internet blocked. Playback evidence is successful device submission and consumed-frame clock progression; physical loopback, audibility, latency and dropout performance have not been measured. Source-load timings are individual observations and are not performance guarantees.
 
 [View the actual packaged desktop workspace](desktop-workspace.png).
 
@@ -46,7 +48,7 @@ Native export/project commands are invoked directly by the smoke test, while bro
 - Browser: `npm run dev`, then `http://127.0.0.1:1420`
 - Optional native launch: `tonalia-desktop.exe "C:\\Audio\\recording.wav"`
 
-Build outputs and dependencies are ignored by Git; reproduce them using the lockfiles and pinned Rust toolchain. [Artifact sizes and SHA-256 hashes](build-artifacts.json) identify the locally tested executable and installer. `npm run desktop:build` generates both browser assets and the Windows package. Licence notices are bundled at `/licenses/THIRD-PARTY.txt`, with a machine-readable dependency inventory beside them. See [dependency notes](DEPENDENCIES.md).
+Build outputs and dependencies are ignored by Git; reproduce them using the lockfiles and pinned Rust toolchain. [Artifact sizes and SHA-256 hashes](build-artifacts.json) identify the published installers. `npm run desktop:build` generates browser assets and the package for the current platform; the release workflow builds all supported targets. Licence notices are bundled at `/licenses/THIRD-PARTY.txt`, with a machine-readable dependency inventory beside them. See [dependency notes](DEPENDENCIES.md).
 
 ## Remaining engineering gates
 
@@ -58,4 +60,4 @@ The initial viewer/editor vertical slice covers portions of P0–P2. It does **n
 4. **Develop workflow and additional platforms:** revision comparison, saved views, reusable operations, device management, integer/dither export, accessibility/editor studies, signing and macOS/Linux qualification.
 5. **Add collaboration, then optional AI:** durable semantic operations and assets, permissions/conflict/reconnect testing, followed by model/rights evaluation and reversible restoration candidates. No cloud or AI infrastructure is included in 0.1.
 
-No changes have been pushed to GitHub, and no other Fatty Recording Co repository was modified or copied into this implementation. The dedicated repository remains [fattyrecordingco/Tonalia](https://github.com/fattyrecordingco/Tonalia).
+Source and platform installers are published in [fattyrecordingco/Tonalia](https://github.com/fattyrecordingco/Tonalia). No other Fatty Recording Co repository was modified or copied into this implementation.

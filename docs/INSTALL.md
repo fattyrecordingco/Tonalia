@@ -6,7 +6,7 @@ You do not need Node.js, Rust, a browser tab, a server or a Tonalia account to r
 
 ## Choose your download
 
-Download from the [official Tonalia 0.1.0 release](https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.1.0). These links point directly to the versioned installers; they become available when the release workflow has completed successfully.
+Download from the [official Tonalia 0.1.0 release](https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.1.0). All five versioned installer links below are published and were checked successfully without authentication.
 
 | Your computer | Direct download | Installation |
 | --- | --- | --- |
@@ -39,7 +39,7 @@ The setup program includes Microsoft's WebView2 offline installer. It can instal
 
 These development builds have ad-hoc signatures and are **not Apple notarized**. macOS may refuse the first launch. After attempting to open Tonalia, use **System Settings → Privacy & Security → Open Anyway** for this specific app if you trust the official download. Follow the confirmation prompt. Do not disable Gatekeeper system-wide. Organization security policies can still block an unnotarized app. See [Apple's instructions for opening an app from an unidentified developer](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac).
 
-Delete Tonalia from Applications to uninstall. Keep your original WAV and saved project files wherever you normally store recordings.
+If the disk image displays the MIT licence agreement, accept it to mount the image. Delete Tonalia from Applications to uninstall. Keep your original WAV and saved project files wherever you normally store recordings.
 
 ## Linux
 
@@ -64,7 +64,7 @@ If FUSE is unavailable, try the runtime's extraction mode:
 ./Tonalia_0.1.0_linux_x86_64.AppImage --appimage-extract-and-run
 ```
 
-A compatible desktop/graphics and audio environment is still required. Remove the Debian package with `sudo apt remove tonalia-desktop`, or delete the AppImage. No local audio is uploaded.
+A compatible desktop/graphics and audio environment is still required. Remove the Debian package with `sudo apt remove tonalia`, or delete the AppImage. No local audio is uploaded.
 
 ## Offline use
 
@@ -94,4 +94,4 @@ Hashes detect corruption and identify a release asset; they do not replace platf
 
 ## Editing and help
 
-See the [README](../README.md) for tools, shortcuts, supported WAV formats and source-build commands, and [implementation status](implementation/STATUS.md) for technical limits and evidence. Report problems in [Tonalia issues](https://github.com/fattyrecordingco/Tonalia/issues), including operating system, chip type, package filename and error text. Avoid posting private recordings.
+See the [README](https://github.com/fattyrecordingco/Tonalia#readme) for tools, shortcuts, supported WAV formats and source-build commands, and [distribution verification](https://github.com/fattyrecordingco/Tonalia/blob/main/docs/implementation/DISTRIBUTION.md) for installation/offline evidence. Report problems in [Tonalia issues](https://github.com/fattyrecordingco/Tonalia/issues), including operating system, chip type, package filename and error text. Avoid posting private recordings.
