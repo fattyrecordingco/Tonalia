@@ -294,9 +294,129 @@ try {
   );
   assert(candidatePreserved, 'Releasing an unaccepted source invalidated the current source.');
   await page.getByText(/2048 FFT/).waitFor({ timeout: 60000 });
+  await page.getByRole('tab', { name: 'Share', exact: true }).click();
+  await page.getByRole('button', { name: 'Host session', exact: true }).click();
+  await page.getByLabel('Session invite', { exact: true }).waitFor();
+  const sessionInvite = JSON.parse(
+    await page.getByLabel('Session invite', { exact: true }).inputValue(),
+  );
+  const identity = { sha256: hash(input), frames, sampleRate: rate, channels: 2 };
+  const shared = await page.evaluate(
+    async ({ invite, identity }) => {
+      const call = (baseRevision, layers, token = invite.token) =>
+        window.__TAURI_INTERNALS__.invoke('exchange_session', {
+          endpoint: invite.endpoint,
+          request: { identity, token, baseRevision, layers },
+        });
+      const initial = await call(null, null);
+      const proposal = structuredClone(initial.layers);
+      proposal[0].name = 'Remote accepted edit';
+      const accepted = await call(initial.revision, proposal);
+      const rejected = await call(initial.revision, []);
+      let badToken = false,
+        badSource = false;
+      try {
+        await call(null, null, '0'.repeat(64));
+      } catch {
+        badToken = true;
+      }
+      try {
+        await window.__TAURI_INTERNALS__.invoke('exchange_session', {
+          endpoint: invite.endpoint,
+          request: {
+            identity: { ...identity, sha256: 'b'.repeat(64) },
+            token: invite.token,
+            baseRevision: null,
+            layers: null,
+          },
+        });
+      } catch {
+        badSource = true;
+      }
+      return {
+        acceptedRevision: accepted.revision,
+        conflict: rejected.conflict,
+        retainedLayers: rejected.layers.length,
+        badToken,
+        badSource,
+      };
+    },
+    { invite: sessionInvite, identity },
+  );
+  assert.equal(shared.acceptedRevision, 1);
+  assert.equal(shared.conflict, true);
+  assert.equal(shared.retainedLayers, 1);
+  assert(shared.badToken && shared.badSource);
+  await page
+    .getByRole('button', { name: 'Delete Remote accepted edit', exact: true })
+    .waitFor({ timeout: 10000 });
+  assert(await page.getByRole('button', { name: 'Undo', exact: true }).isDisabled());
+  await page.getByRole('button', { name: 'Leave session and stop host', exact: true }).click();
+  await page.getByRole('button', { name: 'Host session', exact: true }).waitFor();
+  const gate = {
+    ...layer,
+    gainDb: 0,
+    processor: { kind: 'spectralGate', thresholdDb: 0, reductionDb: 24 },
+  };
+  const gatePath = join(temp, 'gate-output.wav');
+  await page.evaluate(
+    ({ path, layer }) =>
+      window.__TAURI_INTERNALS__.invoke('export_audio', {
+        id: '1',
+        request: { path, layers: [layer], start: 0, end: 192000, bits: 64 },
+      }),
+    { path: gatePath, layer: gate },
+  );
+  const gated = await readFile(gatePath);
+  for (let t = 0; t < frames; t++)
+    assert.equal(gated.readDoubleLE(52 + t * 16), input.readInt16LE(46 + t * 4) / 32768);
+  let gatePower = 0;
+  for (let t = 35001; t < 55000; t++) gatePower += gated.readDoubleLE(44 + t * 16) ** 2;
+  assert(gatePower / beforePower < 0.1);
+  const neuralPath = join(temp, 'neural-output.wav');
+  const neural = {
+    ...layer,
+    gainDb: 0,
+    mask: {
+      ...layer.mask,
+      featherTime: 0,
+      featherHz: 0,
+      shape: { kind: 'rectangle', start: 24000, end: 72000, low: 0, high: 24000 },
+    },
+    processor: { kind: 'neuralSpeechV1', strength: 0.8 },
+  };
+  const neuralStarted = performance.now();
+  await page.evaluate(
+    ({ path, layer }) =>
+      window.__TAURI_INTERNALS__.invoke('export_audio', {
+        id: '1',
+        request: { path, layers: [layer], start: 24000, end: 72000, bits: 64 },
+      }),
+    { path: neuralPath, layer: neural },
+  );
+  const neuralOutput = await readFile(neuralPath);
+  let neuralDifference = 0;
+  for (let t = 0; t < 48000; t++) {
+    const v = neuralOutput.readDoubleLE(44 + t * 16);
+    assert(Number.isFinite(v));
+    assert.equal(
+      neuralOutput.readDoubleLE(52 + t * 16),
+      input.readInt16LE(46 + (t + 24000) * 4) / 32768,
+    );
+    neuralDifference += Math.abs(v - input.readInt16LE(44 + (t + 24000) * 4) / 32768);
+  }
+  assert(neuralDifference > 1);
+  const restoration = {
+    nativeGate: true,
+    nativeNeural: true,
+    neuralDifference,
+    neuralExportMs: performance.now() - neuralStarted,
+  };
   await mkdir('docs/implementation', { recursive: true });
   await page.screenshot({ path: reportFile.replace(/\.json$/, '.png') });
   const report = {
+    sharedSession: shared,
+    restoration,
     date: new Date().toISOString(),
     platform: process.platform,
     arch: process.arch,

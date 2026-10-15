@@ -1,5 +1,7 @@
 //! Shared, source-preserving audio mathematics. No hardware, UI, or filesystem dependencies.
 pub mod resample;
+pub mod restoration;
+pub use restoration::{render_halo, Processor};
 pub mod spectral;
 pub mod stats;
 pub mod wav;

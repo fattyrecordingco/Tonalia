@@ -1680,3 +1680,49 @@ button.active {
   font-size: 12px;
   line-height: 1.6;
 }
+.shortcut-list {
+  min-width: 540px;
+}
+.shortcut-list > div {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 20px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+}
+.shortcut-list dt {
+  color: var(--accent);
+}
+.shortcut-list dd {
+  margin: 0;
+}
+.inspector-section textarea {
+  width: 100%;
+  resize: vertical;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  padding: 8px;
+  border-radius: 5px;
+  font: inherit;
+}
+.inspector-section select {
+  max-width: 100%;
+}
+.inspector-section > label {
+  display: block;
+  margin: 12px 0;
+}
+.recovery-row {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.recovery-row small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+}

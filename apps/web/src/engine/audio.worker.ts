@@ -50,16 +50,22 @@ async function samples(start: number, end: number, expected = epoch): Promise<Fl
   start = Math.max(0, Math.floor(start));
   end = Math.min(info.frames, Math.ceil(end));
   if (end <= start) return new Float64Array();
-  return decode(
-    await read(
-      info.dataOffset + start * info.blockAlign,
-      info.dataOffset + end * info.blockAlign,
+  if ((end - start) * info.channels > 16_000_000)
+    throw new Error('Render input exceeds the working-memory budget.');
+  const pcm = new Float64Array((end - start) * info.channels);
+  const chunk = Math.floor((8 * 1024 * 1024) / info.blockAlign);
+  for (let at = start; at < end; at += chunk) {
+    const next = Math.min(end, at + chunk);
+    const data = await read(
+      info.dataOffset + at * info.blockAlign,
+      info.dataOffset + next * info.blockAlign,
       expected,
-    ),
-    info,
-  );
+    );
+    pcm.set(decode(data, info), (at - start) * info.channels);
+  }
+  return pcm;
 }
-async function processed(
+async function renderBlock(
   start: number,
   end: number,
   layers: Layer[],
@@ -68,9 +74,11 @@ async function processed(
   const i = info!;
   start = Math.max(0, Math.floor(start));
   end = Math.min(i.frames, Math.ceil(end));
-  const active = layers.filter((l) => l.enabled && l.gainDb !== 0);
+  const active = layers.filter((l) => l.enabled && (l.processor || l.gainDb !== 0));
   if (!active.length) return samples(start, end, expected);
-  const halo = 2048 * (active.length + 1);
+  const halo =
+    2048 +
+    active.reduce((sum, l) => sum + (l.processor?.kind === 'neuralSpeechV1' ? 120480 : 2048), 0);
   const a = Math.max(0, start - halo);
   const b = Math.min(i.frames, end + halo);
   if ((b - a) * i.channels > 16_000_000)
@@ -78,6 +86,41 @@ async function processed(
   const input = await samples(a, b, expected);
   const output = render(input, a, i, JSON.stringify(active));
   return output.slice((start - a) * i.channels, (end - a) * i.channels);
+}
+const tiles = new Map<number, Float64Array>();
+let tileGraph = '',
+  tileEpoch = -1;
+async function processed(
+  start: number,
+  end: number,
+  layers: Layer[],
+  expected = epoch,
+): Promise<Float64Array> {
+  const graph = JSON.stringify(layers);
+  if (graph !== tileGraph || tileEpoch !== expected) {
+    tiles.clear();
+    tileGraph = graph;
+    tileEpoch = expected;
+  }
+  const i = info!;
+  start = Math.max(0, Math.floor(start));
+  end = Math.min(i.frames, Math.ceil(end));
+  const out = new Float64Array((end - start) * i.channels);
+  for (let t = Math.floor(start / 32768) * 32768; t < end; t += 32768) {
+    let tile = tiles.get(t);
+    if (!tile) {
+      tile = await renderBlock(t, Math.min(i.frames, t + 32768), layers, expected);
+      if (expected !== epoch) throw new Error('Source changed.');
+      if (graph === tileGraph && expected === tileEpoch) {
+        tiles.set(t, tile);
+        if (tiles.size > 16) tiles.delete(tiles.keys().next().value!);
+      }
+    }
+    const a = Math.max(start, t),
+      b = Math.min(end, t + 32768);
+    out.set(tile.subarray((a - t) * i.channels, (b - t) * i.channels), (a - start) * i.channels);
+  }
+  return out;
 }
 async function scanSource(expected: number) {
   const i = info!;

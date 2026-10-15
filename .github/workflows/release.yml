@@ -7,7 +7,7 @@ on:
       tag:
         description: 'Existing release tag, matching the package version'
         required: true
-        default: 'v0.1.0'
+        default: 'v0.2.0'
 permissions:
   contents: read
 concurrency:
@@ -68,6 +68,7 @@ jobs:
       - run: npm ci
       - run: cargo fmt --all --check
       - run: cargo test --locked -p tonalia-core
+      - run: cargo test --locked -p tonalia-desktop
       - run: npm run build
       - name: Browser integration tests
         if: runner.os == 'Windows'

@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod audio;
+mod collaboration;
 mod media;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -26,6 +27,7 @@ struct AppState {
     export: Mutex<Option<ExportControl>>,
     launch: Mutex<Option<Result<SourceRef, String>>>,
     installation_report: Option<PathBuf>,
+    host: Mutex<Option<collaboration::Host>>,
 }
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -381,6 +383,35 @@ fn finish_installation_check(
     output.write_all(&contents).map_err(|e| e.to_string())?;
     output.sync_all().map_err(|e| e.to_string())
 }
+#[tauri::command]
+fn host_session(
+    identity: collaboration::Identity,
+    layers: Vec<Layer>,
+    lan: bool,
+    state: State<AppState>,
+) -> Result<collaboration::Started, String> {
+    let (host, started) = collaboration::start(identity, layers, lan)?;
+    *state.host.lock().map_err(|_| "Session state unavailable")? = Some(host);
+    Ok(started)
+}
+#[tauri::command]
+fn stop_session(state: State<AppState>) -> Result<(), String> {
+    state
+        .host
+        .lock()
+        .map_err(|_| "Session state unavailable")?
+        .take();
+    Ok(())
+}
+#[tauri::command]
+async fn exchange_session(
+    endpoint: String,
+    request: collaboration::Request,
+) -> Result<collaboration::Snapshot, String> {
+    tauri::async_runtime::spawn_blocking(move || collaboration::exchange(endpoint, request))
+        .await
+        .map_err(|e| e.to_string())?
+}
 fn main() {
     let mut state = AppState::default();
     let arguments: Vec<_> = std::env::args_os().collect();
@@ -420,6 +451,9 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .manage(state)
         .invoke_handler(tauri::generate_handler![
+            host_session,
+            stop_session,
+            exchange_session,
             take_launch_source,
             installation_check_enabled,
             finish_installation_check,

@@ -267,3 +267,134 @@ test('browser output picker refuses the source filename before writing', async (
   await expect(page.getByRole('alert')).toContainText('different filename');
   await expect(page.getByRole('alert')).not.toContainText('writer must');
 });
+
+test('keyboard commands protect typing and wheel/pinch zoom preserves audio', async ({ page }) => {
+  await page.goto('/');
+  await openFixture(page);
+  const field = page.getByRole('textbox', { name: 'Layer name', exact: true });
+  await field.fill('Typing B M L T stays in this field');
+  await expect(field).toHaveValue('Typing B M L T stays in this field');
+  await field.press('Tab');
+  await page.locator('.brand').click();
+  await page.keyboard.press('Control+a');
+  await expect(page.getByRole('textbox', { name: 'Start', exact: true })).toHaveValue('0.000');
+  await page.keyboard.press('?');
+  await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('=');
+  const before = await page.locator('.overview-window').getAttribute('style');
+  const canvas = page.getByLabel('Spectral audio canvas.', { exact: false });
+  const box = (await canvas.boundingBox())!;
+  await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.4);
+  await page.mouse.wheel(0, -180);
+  await expect.poll(() => page.locator('.overview-window').getAttribute('style')).not.toBe(before);
+  await page.keyboard.down('Control');
+  await page.mouse.wheel(0, -40);
+  await page.keyboard.up('Control');
+  await page.keyboard.press('0');
+  const gesture = async (type: string, scale: number) =>
+    canvas.evaluate(
+      (el, args) => {
+        const event = new Event(args.type, { cancelable: true });
+        Object.assign(event, { scale: args.scale, clientX: el.getBoundingClientRect().left + 200 });
+        el.dispatchEvent(event);
+      },
+      { type, scale },
+    );
+  await gesture('gesturestart', 1);
+  await gesture('gesturechange', 2);
+  const pinchBefore = await page.locator('.overview-window').getAttribute('style');
+  await page.waitForTimeout(50);
+  await gesture('gesturechange', 4);
+  await expect
+    .poll(() => page.locator('.overview-window').getAttribute('style'))
+    .not.toBe(pinchBefore);
+  await page.keyboard.press('0');
+  const out = await exportWav(page);
+  expect(out.readDoubleLE(44 + 1000 * 16)).toBe(
+    fixture().buffer.readInt16LE(44 + 1000 * 4) / 32768,
+  );
+});
+
+test('restoration is reversible, persists after recovery and preserves the unselected channel', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await openFixture(page);
+  await number(page, 'Start', '0.5');
+  await number(page, 'End', '1.5');
+  await page.getByLabel('Target channels').selectOption('0');
+  await page.getByRole('tab', { name: 'Restore', exact: true }).click();
+  await page.getByLabel('Restoration operation').selectOption('spectralGate');
+  await number(page, 'Gate threshold', '0');
+  await number(page, 'Maximum reduction', '24');
+  await page.getByRole('button', { name: 'Create restoration layer', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Delete Spectral gate', exact: true }),
+  ).toBeVisible();
+  const output = await exportWav(page);
+  const source = fixture().buffer;
+  let energy = 0,
+    original = 0,
+    rightError = 0;
+  for (let t = 0; t < 144000; t++) {
+    rightError = Math.max(
+      rightError,
+      Math.abs(output.readDoubleLE(52 + t * 16) - source.readInt16LE(46 + t * 4) / 32768),
+    );
+    if (t > 35000 && t < 55000) {
+      energy += output.readDoubleLE(44 + t * 16) ** 2;
+      original += (source.readInt16LE(44 + t * 4) / 32768) ** 2;
+    }
+  }
+  expect(rightError).toBe(0);
+  expect(energy / original).toBeLessThan(0.1);
+  await page.getByRole('button', { name: 'Bypass Spectral gate', exact: true }).click();
+  const bypass = await exportWav(page);
+  expect(bypass.readDoubleLE(44 + 40000 * 16)).toBe(source.readInt16LE(44 + 40000 * 4) / 32768);
+  // The recovery store survives a full reload and still enforces source relinking.
+  await page.waitForTimeout(1800);
+  await page.reload();
+  await page.getByRole('button', { name: 'History', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Local version history' })).toBeVisible();
+  await page.getByRole('button', { name: 'Restore', exact: true }).first().click();
+  await openFixture(page);
+  await expect(
+    page.getByRole('button', { name: 'Enable Spectral gate', exact: true }),
+  ).toBeVisible();
+});
+
+test('offline neural speech model renders real audio without a network dependency', async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await page.goto('/');
+  await openFixture(page);
+  await page.context().setOffline(true);
+  await number(page, 'Start', '0.5');
+  await number(page, 'End', '1.5');
+  await page.getByLabel('Target channels').selectOption('0');
+  await page.getByRole('tab', { name: 'Restore', exact: true }).click();
+  await page.getByLabel('Restoration operation').selectOption('neuralSpeechV1');
+  await page.getByRole('button', { name: 'Create restoration layer', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Delete Neural speech denoise', exact: true }),
+  ).toBeVisible();
+  const out = await exportWav(page);
+  const source = fixture().buffer;
+  let difference = 0,
+    rightError = 0,
+    finite = true;
+  for (let t = 0; t < 144000; t++) {
+    const v = out.readDoubleLE(44 + t * 16);
+    finite &&= Number.isFinite(v);
+    rightError = Math.max(
+      rightError,
+      Math.abs(out.readDoubleLE(52 + t * 16) - source.readInt16LE(46 + t * 4) / 32768),
+    );
+    if (t > 30000 && t < 60000) difference += Math.abs(v - source.readInt16LE(44 + t * 4) / 32768);
+  }
+  expect(finite).toBe(true);
+  expect(rightError).toBe(0);
+  expect(difference).toBeGreaterThan(1);
+});

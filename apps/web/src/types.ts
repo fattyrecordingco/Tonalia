@@ -23,11 +23,17 @@ export interface Mask {
   featherTime: number;
   featherHz: number;
 }
+export type Processor =
+  | { kind: 'spectralGate'; thresholdDb: number; reductionDb: number }
+  | { kind: 'hum'; frequency: number; widthHz: number; reductionDb: number }
+  | { kind: 'interpolate' }
+  | { kind: 'neuralSpeechV1'; strength: number };
 export interface Layer {
   id: string;
   name: string;
   enabled: boolean;
   gainDb: number;
+  processor?: Processor;
   mask: Mask;
 }
 export interface ChannelStats {
@@ -76,8 +82,8 @@ export interface ScanEvent {
 }
 export interface Project {
   format: 'tonalia';
-  schema: 1;
-  engine: 'spectral-gain-v1';
+  schema: 1 | 2;
+  engine: 'spectral-gain-v1' | 'spectral-edit-v2';
   fftSize: 2048;
   source: {
     name: string;

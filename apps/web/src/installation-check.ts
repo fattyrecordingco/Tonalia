@@ -87,6 +87,56 @@ export async function verifyInstallation() {
     }
     if (leftError > 2e-8 || rightError !== 0)
       throw new Error(`Installed processing failed: ${leftError}, ${rightError}`);
+    const gate: Layer = {
+      ...layer,
+      id: 'gate-check',
+      gainDb: 0,
+      processor: { kind: 'spectralGate', thresholdDb: 0, reductionDb: 24 },
+    };
+    const gated = await engine.call<{ samples: Float32Array }>('playback', {
+      ...args,
+      mode: 'result',
+      layers: [gate],
+    });
+    let gateError = 0;
+    for (let j = 0; j < gated.samples.length; j += 2) {
+      gateError = Math.max(
+        gateError,
+        Math.abs(gated.samples[j] - original.samples[j] * 10 ** (-24 / 20)),
+      );
+      if (gated.samples[j + 1] !== original.samples[j + 1])
+        throw new Error('Gate changed the unselected channel.');
+    }
+    if (gateError > 0.001) throw new Error(`Gate calibration failed: ${gateError}`);
+    const neural: Layer = {
+      ...layer,
+      id: 'neural-check',
+      gainDb: 0,
+      processor: { kind: 'neuralSpeechV1', strength: 0.8 },
+    };
+    const started = performance.now();
+    const denoised = await engine.call<{ samples: Float32Array }>('playback', {
+      ...args,
+      mode: 'result',
+      layers: [neural],
+    });
+    let neuralDifference = 0;
+    for (let j = 0; j < denoised.samples.length; j += 2) {
+      if (
+        !Number.isFinite(denoised.samples[j]) ||
+        denoised.samples[j + 1] !== original.samples[j + 1]
+      )
+        throw new Error('Neural output is invalid or changed the unselected channel.');
+      neuralDifference += Math.abs(denoised.samples[j] - original.samples[j]);
+    }
+    if (neuralDifference < 0.1)
+      throw new Error('The bundled neural model did not process the test signal.');
+    report.restoration = {
+      gateMaxError: gateError,
+      bundledNeuralModel: true,
+      neuralDifference,
+      neuralRenderMs: performance.now() - started,
+    };
     Object.assign(report, {
       passed: true,
       frontendMounted: true,

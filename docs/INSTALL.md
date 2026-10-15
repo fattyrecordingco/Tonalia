@@ -1,20 +1,20 @@
 # Download and install Tonalia
 
-Tonalia is developed by Fatty Recording Co. **0.1.0 is a development release** with working local spectral gain editing. Professional restoration, collaboration and AI remain future stages.
+Tonalia is developed by Fatty Recording Co. **0.2.0 is a development release** with nondestructive spectral editing, initial restoration tools, offline neural speech denoising and experimental LAN co-editing. The complete professional roadmap and Audition parity remain unverified.
 
 You do not need Node.js, Rust, a browser tab, a server or a Tonalia account to run an installed desktop app. The audio engine, WebAssembly, interface, icons and fonts are included. Audio stays on your machine.
 
 ## Choose your download
 
-Download from the [official Tonalia 0.1.0 release](https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.1.0). All five versioned installer links below are published and were checked successfully without authentication.
+Download from the [official Tonalia 0.2.0 release](https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.2.0). Choose one installer below for your operating system and CPU. Release checksums and installed-app verification reports accompany the binaries.
 
 | Your computer | Direct download | Installation |
 | --- | --- | --- |
-| Windows 11, Intel or AMD 64-bit | [Windows x64 setup.exe](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_windows_x64_setup.exe) | Open the setup program; installs for your user |
-| Mac with Apple M-series chip, macOS 13+ | [Mac Apple Silicon .dmg](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_macos_apple_silicon.dmg) | Open the disk image; drag Tonalia into Applications |
-| Mac with Intel processor, macOS 13+ | [Mac Intel .dmg](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_macos_intel.dmg) | Open the disk image; drag Tonalia into Applications |
-| Ubuntu 22.04+ or compatible Debian-based Linux, x86-64 | [Linux amd64 .deb](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_linux_amd64.deb) | Install with your package manager |
-| Other compatible Linux desktop, x86-64 | [Linux x86-64 .AppImage](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_linux_x86_64.AppImage) | Make executable, then open |
+| Windows 11, Intel or AMD 64-bit | [Windows x64 setup.exe](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_windows_x64_setup.exe) | Open the setup program; installs for your user |
+| Mac with Apple M-series chip, macOS 13+ | [Mac Apple Silicon .dmg](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_macos_apple_silicon.dmg) | Open the disk image; drag Tonalia into Applications |
+| Mac with Intel processor, macOS 13+ | [Mac Intel .dmg](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_macos_intel.dmg) | Open the disk image; drag Tonalia into Applications |
+| Ubuntu 22.04+ or compatible Debian-based Linux, x86-64 | [Linux amd64 .deb](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_linux_amd64.deb) | Install with your package manager |
+| Other compatible Linux desktop, x86-64 | [Linux x86-64 .AppImage](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_linux_x86_64.AppImage) | Make executable, then open |
 
 Linux ARM and Windows ARM do not have native packages in this release. Debian-derived systems other than the build baseline and other AppImage distributions need testing; AppImage is not a promise of compatibility with every Linux distribution. Windows 10 is outside the qualified baseline.
 
@@ -46,7 +46,7 @@ If the disk image displays the MIT licence agreement, accept it to mount the ima
 For Ubuntu/Debian-compatible systems, open a terminal in the download folder:
 
 ```sh
-sudo apt install ./Tonalia_0.1.0_linux_amd64.deb
+sudo apt install ./Tonalia_0.2.0_linux_amd64.deb
 ```
 
 Then open **Tonalia** from your desktop's applications menu. The executable is `tonalia-desktop`. The package manager checks and installs system dependencies, including the GTK/WebKit runtime and audio libraries. Installing missing Linux system dependencies normally requires internet or a local package mirror; the application itself runs offline once they are present.
@@ -54,14 +54,14 @@ Then open **Tonalia** from your desktop's applications menu. The executable is `
 For AppImage:
 
 ```sh
-chmod +x Tonalia_0.1.0_linux_x86_64.AppImage
-./Tonalia_0.1.0_linux_x86_64.AppImage
+chmod +x Tonalia_0.2.0_linux_x86_64.AppImage
+./Tonalia_0.2.0_linux_x86_64.AppImage
 ```
 
 If FUSE is unavailable, try the runtime's extraction mode:
 
 ```sh
-./Tonalia_0.1.0_linux_x86_64.AppImage --appimage-extract-and-run
+./Tonalia_0.2.0_linux_x86_64.AppImage --appimage-extract-and-run
 ```
 
 A compatible desktop/graphics and audio environment is still required. Remove the Debian package with `sudo apt remove tonalia`, or delete the AppImage. No local audio is uploaded.
@@ -76,18 +76,18 @@ Release verification reports distinguish automated installation/startup/DSP chec
 
 ## Verify a download
 
-[Download SHA256SUMS.txt](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/SHA256SUMS.txt). Compare the line for your exact file:
+[Download SHA256SUMS.txt](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/SHA256SUMS.txt). Compare the line for your exact file:
 
 ```powershell
 # Windows PowerShell
-Get-FileHash .\Tonalia_0.1.0_windows_x64_setup.exe -Algorithm SHA256
+Get-FileHash .\Tonalia_0.2.0_windows_x64_setup.exe -Algorithm SHA256
 ```
 
 ```sh
 # macOS
-shasum -a 256 Tonalia_0.1.0_macos_apple_silicon.dmg
+shasum -a 256 Tonalia_0.2.0_macos_apple_silicon.dmg
 # Linux
-sha256sum Tonalia_0.1.0_linux_amd64.deb
+sha256sum Tonalia_0.2.0_linux_amd64.deb
 ```
 
 Hashes detect corruption and identify a release asset; they do not replace platform code-signing/notarization.
@@ -95,3 +95,7 @@ Hashes detect corruption and identify a release asset; they do not replace platf
 ## Editing and help
 
 See the [README](https://github.com/fattyrecordingco/Tonalia#readme) for tools, shortcuts, supported WAV formats and source-build commands, and [distribution verification](https://github.com/fattyrecordingco/Tonalia/blob/main/docs/implementation/DISTRIBUTION.md) for installation/offline evidence. Report problems in [Tonalia issues](https://github.com/fattyrecordingco/Tonalia/issues), including operating system, chip type, package filename and error text. Avoid posting private recordings.
+
+## New in 0.2
+
+Press **?** for keyboard shortcuts. Scroll or pinch over the canvas to zoom; Shift-scroll pans and Alt-scroll zooms frequency. **Restore** creates reversible restoration layers, **History** opens local recovery checkpoints, and **Share** hosts or joins an optional local-network session. Neural speech denoising works offline at 48 kHz with its included model. See [feature scope and limitations](implementation/RELEASE-0.2.md).

@@ -30,9 +30,33 @@
     "texts": 2
   },
   {
+    "name": "anymap3",
+    "version": "1.1.0",
+    "license": "BlueOak-1.0.0 OR MIT OR Apache-2.0",
+    "texts": 1
+  },
+  {
+    "name": "array-init",
+    "version": "2.1.0",
+    "license": "MIT OR Apache-2.0",
+    "texts": 2
+  },
+  {
+    "name": "ascii",
+    "version": "1.1.0",
+    "license": "Apache-2.0 OR MIT",
+    "texts": 2
+  },
+  {
     "name": "autocfg",
     "version": "1.5.1",
     "license": "Apache-2.0 OR MIT",
+    "texts": 2
+  },
+  {
+    "name": "base64",
+    "version": "0.22.1",
+    "license": "MIT OR Apache-2.0",
     "texts": 2
   },
   {
@@ -154,6 +178,12 @@
     "version": "0.4.45",
     "license": "MIT OR Apache-2.0",
     "texts": 1
+  },
+  {
+    "name": "chunked_transfer",
+    "version": "1.5.0",
+    "license": "MIT OR Apache-2.0",
+    "texts": 2
   },
   {
     "name": "cookie",
@@ -336,6 +366,12 @@
     "texts": 2
   },
   {
+    "name": "easyfft",
+    "version": "0.4.2",
+    "license": "MIT OR Apache-2.0",
+    "texts": 2
+  },
+  {
     "name": "embed-resource",
     "version": "3.0.12",
     "license": "MIT",
@@ -432,6 +468,12 @@
     "texts": 2
   },
   {
+    "name": "generic_singleton",
+    "version": "0.5.3",
+    "license": "MIT OR Apache-2.0",
+    "texts": 2
+  },
+  {
     "name": "generic-array",
     "version": "0.14.7",
     "license": "MIT",
@@ -488,6 +530,12 @@
   {
     "name": "http",
     "version": "1.5.0",
+    "license": "MIT OR Apache-2.0",
+    "texts": 2
+  },
+  {
+    "name": "httpdate",
+    "version": "1.0.3",
     "license": "MIT OR Apache-2.0",
     "texts": 2
   },
@@ -702,6 +750,12 @@
     "texts": 1
   },
   {
+    "name": "nnnoiseless",
+    "version": "0.5.2",
+    "license": "BSD-3-Clause",
+    "texts": 1
+  },
+  {
     "name": "num-complex",
     "version": "0.4.6",
     "license": "MIT OR Apache-2.0",
@@ -856,6 +910,12 @@
     "version": "0.6.2",
     "license": "MIT OR Apache-2.0 OR Zlib",
     "texts": 3
+  },
+  {
+    "name": "realfft",
+    "version": "3.5.0",
+    "license": "MIT",
+    "texts": 0
   },
   {
     "name": "ref-cast",
@@ -1266,6 +1326,12 @@
     "texts": 2
   },
   {
+    "name": "tiny_http",
+    "version": "0.12.0",
+    "license": "MIT OR Apache-2.0",
+    "texts": 2
+  },
+  {
     "name": "tinystr",
     "version": "0.8.4",
     "license": "Unicode-3.0",
@@ -1354,6 +1420,12 @@
     "version": "1.13.3",
     "license": "MIT OR Apache-2.0",
     "texts": 3
+  },
+  {
+    "name": "ureq",
+    "version": "2.12.1",
+    "license": "MIT OR Apache-2.0",
+    "texts": 2
   },
   {
     "name": "url",

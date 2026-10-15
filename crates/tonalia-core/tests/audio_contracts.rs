@@ -16,6 +16,7 @@ fn layer(ch: Option<u16>) -> Layer {
         name: "Test gain".into(),
         enabled: true,
         gain_db: -18.0,
+        processor: None,
         mask: Mask {
             shape: Shape::Rectangle {
                 start: 4000.0,

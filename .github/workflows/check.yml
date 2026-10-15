@@ -22,7 +22,7 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo test -p tonalia-core
       - run: npm run build
-      - run: cargo check -p tonalia-desktop
+      - run: cargo test -p tonalia-desktop
       - run: npx playwright install chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4

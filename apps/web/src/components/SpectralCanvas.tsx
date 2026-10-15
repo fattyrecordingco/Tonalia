@@ -9,6 +9,7 @@ import {
 import { AudioLines, FolderOpen, MousePointer2, ZoomIn, ZoomOut, Scan } from 'lucide-react';
 import type { WavInfo, View, Mask, Layer, Tool, Point, Analysis } from '../types';
 import { formatHz, formatTime, maskBounds } from '../types';
+import { clampView, zoomTime, zoomFrequency } from '../engine/navigation';
 import { GpuSpectrogram } from '../engine/gpu-spectrogram';
 export interface Overview {
   peaks: Float32Array;
@@ -269,19 +270,16 @@ export function SpectralCanvas(p: Props) {
     }
     ctx.stroke();
   }, [p.overview, p.info, size.w]);
-  const fitView = (v: View): View => {
-    const frames = p.info?.frames || 1;
-    const span = Math.min(frames, Math.max(64, v.end - v.start));
-    const start = Math.max(0, Math.min(frames - span, v.start));
-    return { ...v, start, end: start + span };
+  const viewRef = useRef(p.view);
+  const pinchView = useRef<View | null>(null);
+  viewRef.current = p.view;
+  const fitView = (v: View) => clampView(v, p.info?.frames || 1);
+  const updateView = (v: View) => {
+    viewRef.current = v;
+    p.onView(v);
   };
-  const zoom = (factor: number, anchor = (p.view.start + p.view.end) / 2) => {
-    const before = (anchor - p.view.start) / (p.view.end - p.view.start);
-    const span = (p.view.end - p.view.start) * factor;
-    p.onView(
-      fitView({ ...p.view, start: anchor - span * before, end: anchor + span * (1 - before) }),
-    );
-  };
+  const zoom = (factor: number) =>
+    updateView(zoomTime(viewRef.current, p.info?.frames || 1, factor));
   useEffect(() => {
     const el = root.current;
     if (!el) return;
@@ -289,24 +287,59 @@ export function SpectralCanvas(p: Props) {
       if (!p.info) return;
       e.preventDefault();
       const r = el.getBoundingClientRect();
+      const v = viewRef.current;
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? el.clientHeight : 1;
+      const dx = e.deltaX * unit,
+        dy = e.deltaY * unit;
+      const fraction = Math.max(0, Math.min(1, (e.clientX - r.left - LEFT) / width));
       if (e.altKey) {
-        const center = (p.view.high + p.view.low) / 2;
-        const factor = Math.exp(e.deltaY * 0.002);
-        const span = (p.view.high - p.view.low) * factor;
-        const low = Math.max(p.view.log ? 20 : 0, center - span / 2),
-          high = Math.min(p.info.sampleRate / 2, center + span / 2);
-        if (high - low > 100) p.onView({ ...p.view, low, high });
-      } else if (e.ctrlKey || e.metaKey) {
-        const at =
-          p.view.start + ((e.clientX - r.left - LEFT) / width) * (p.view.end - p.view.start);
-        zoom(Math.exp(e.deltaY * 0.004), at);
+        const y = e.clientY - r.top - spectralTop;
+        const f = Math.max(
+          0,
+          Math.min(1, 1 - (((y % laneHeight) + laneHeight) % laneHeight) / laneHeight),
+        );
+        updateView(
+          zoomFrequency(
+            v,
+            p.info.sampleRate / 2,
+            Math.exp(Math.max(-2, Math.min(2, dy * 0.003))),
+            f,
+          ),
+        );
+      } else if (e.shiftKey || (Math.abs(dx) > Math.abs(dy) && !e.ctrlKey && !e.metaKey)) {
+        const delta = ((dx || dy) / width) * (v.end - v.start);
+        updateView(clampView({ ...v, start: v.start + delta, end: v.end + delta }, p.info.frames));
       } else {
-        const delta = ((e.deltaX || e.deltaY) / width) * (p.view.end - p.view.start);
-        p.onView(fitView({ ...p.view, start: p.view.start + delta, end: p.view.end + delta }));
+        updateView(
+          zoomTime(
+            v,
+            p.info.frames,
+            Math.exp(Math.max(-2, Math.min(2, dy * (e.ctrlKey ? 0.01 : 0.003)))),
+            fraction,
+          ),
+        );
       }
     };
+    // Safari sends gesture events for trackpad pinch instead of Ctrl-wheel.
+    const gestureStart = (event: Event) => {
+      event.preventDefault();
+      pinchView.current = viewRef.current;
+    };
+    const gestureChange = (event: Event) => {
+      event.preventDefault();
+      const e = event as Event & { scale: number; clientX: number };
+      if (!pinchView.current || !p.info || !Number.isFinite(e.scale) || e.scale <= 0) return;
+      const fraction = (e.clientX - el.getBoundingClientRect().left - LEFT) / width;
+      updateView(zoomTime(pinchView.current, p.info.frames, 1 / e.scale, fraction));
+    };
     el.addEventListener('wheel', wheel, { passive: false });
-    return () => el.removeEventListener('wheel', wheel);
+    el.addEventListener('gesturestart', gestureStart, { passive: false });
+    el.addEventListener('gesturechange', gestureChange, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', wheel);
+      el.removeEventListener('gesturestart', gestureStart);
+      el.removeEventListener('gesturechange', gestureChange);
+    };
   });
   const point = (e: ReactPointerEvent) => {
     const r = root.current!.getBoundingClientRect();
@@ -758,7 +791,9 @@ export function SpectralCanvas(p: Props) {
               : p.tool === 'lasso'
                 ? 'Draw around frequencies'
                 : 'Drag to select'}
-          <span className="shortcut-hint">Ctrl + scroll to zoom</span>
+          <span className="shortcut-hint">
+            Scroll / pinch to zoom · Shift + scroll to pan · Alt to zoom Hz
+          </span>
         </span>
         <div className="db-key">
           <span>{p.floor} dB</span>

@@ -6,19 +6,19 @@ Tonalia 0.1 is a working development release with a shared Rust audio core, a Re
 
 ## Download the desktop app
 
-Installers are published on the [Tonalia 0.1.0 release page](https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.1.0). No developer tools or account are needed. Editing works offline after installation.
+Installers are published on the [Tonalia 0.2.0 release page](https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.2.0). No developer tools or account are needed. Editing works offline after installation.
 
 | Your computer | Direct installer |
 | --- | --- |
-| Windows 11 x64, Intel/AMD | [Windows setup.exe](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_windows_x64_setup.exe) |
-| Mac Apple Silicon, macOS 13+ | [Apple Silicon DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_macos_apple_silicon.dmg) |
-| Mac Intel, macOS 13+ | [Intel DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_macos_intel.dmg) |
-| Ubuntu 22.04+/compatible Debian, x86-64 | [Linux .deb](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_linux_amd64.deb) |
-| Other compatible Linux desktops, x86-64 | [Linux AppImage](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.1.0/Tonalia_0.1.0_linux_x86_64.AppImage) |
+| Windows 11 x64, Intel/AMD | [Windows setup.exe](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_windows_x64_setup.exe) |
+| Mac Apple Silicon, macOS 13+ | [Apple Silicon DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_macos_apple_silicon.dmg) |
+| Mac Intel, macOS 13+ | [Intel DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_macos_intel.dmg) |
+| Ubuntu 22.04+/compatible Debian, x86-64 | [Linux .deb](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_linux_amd64.deb) |
+| Other compatible Linux desktops, x86-64 | [Linux AppImage](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_linux_x86_64.AppImage) |
 
 See [installation, chip selection, offline use and checksum instructions](docs/INSTALL.md). These are development builds: Windows is unsigned and Mac builds are ad-hoc signed without Apple notarization. The Windows setup includes the WebView2 offline installer. Linux prerequisites must be available locally for a fully offline installation.
 
-All platform packaging/installation checks passed on native GitHub runners. The published Windows installer was also downloaded, installed and tested through its native Open/Save dialogs with outbound WebView internet blocked. The published Debian package and AppImage ran on Ubuntu 24.04 under WSL2 with no internet interface. See the [distribution verification record](docs/implementation/DISTRIBUTION.md) for evidence and limits.
+The 0.1 release passed packaging/installation checks on native GitHub runners. Updated 0.2 reports accompany its release. The published Windows installer was also downloaded, installed and tested through its native Open/Save dialogs with outbound WebView internet blocked. The published Debian package and AppImage ran on Ubuntu 24.04 under WSL2 with no internet interface. See the [distribution verification record](docs/implementation/DISTRIBUTION.md) for evidence and limits.
 
 ## What works
 
@@ -32,7 +32,11 @@ All platform packaging/installation checks passed on native GitHub runners. The 
 - Save project manifests with source SHA-256 identity. Reopening requires the matching original WAV before restoring edits. Projects do not embed media.
 - Render the spectral raster with WebGL2 and fall back to Canvas2D if graphics are unavailable/lost. GPU availability cannot change the DSP result.
 
-All processing is local. There is no account requirement or audio upload service.
+- Use spectral gating, harmonic hum attenuation, short-click interpolation and the bundled offline neural speech model as reversible restoration layers.
+- Recover recent local layer checkpoints from History. Use the Shortcuts guide and mouse/trackpad zoom to navigate.
+- Host or join an optional LAN editing session with source identity checks, ordered revisions and explicit conflict rejection. Audio remains local.
+
+All audio processing is local. There is no account requirement or audio upload service. [0.2 implementation, algorithms and limitations](docs/implementation/RELEASE-0.2.md).
 
 ## Run from source
 
@@ -63,7 +67,7 @@ npm run build
 npm run desktop:build
 ```
 
-The Windows installer is written to `target/release/bundle/nsis/Tonalia_0.1.0_x64-setup.exe`. The standalone application is `target/release/tonalia-desktop.exe`; it also accepts a WAV path as its first command-line argument. Platform configurations build Windows NSIS, macOS DMG, and Linux Debian/AppImage packages. The release workflow builds separate Apple Silicon and Intel packages on native Mac runners. See [installation instructions](docs/INSTALL.md) for supported baselines and signing limits.
+The Windows installer is written to `target/release/bundle/nsis/Tonalia_0.2.0_x64-setup.exe`. The standalone application is `target/release/tonalia-desktop.exe`; it also accepts a WAV path as its first command-line argument. Platform configurations build Windows NSIS, macOS DMG, and Linux Debian/AppImage packages. The release workflow builds separate Apple Silicon and Intel packages on native Mac runners. See [installation instructions](docs/INSTALL.md) for supported baselines and signing limits.
 
 ## Make a reversible edit
 
@@ -114,7 +118,7 @@ The native smoke test opens a temporary generated recording, plays a short quiet
 
 ## Current limits
 
-This release is not professional feature parity. Noise reduction, spot healing/inpainting, declipping, dereverberation, LUFS/true-peak metering, collaboration, AI restoration, recording, third-party plugin hosting, and device selection are not implemented. No placeholder restoration tools claim to work.
+This release is not professional feature parity. Captured-profile/adaptive noise reduction, advanced spectral inpainting, declipping, dereverberation, LUFS/true-peak metering, hosted collaboration/CRDT merging, additional AI restoration models, recording, third-party plugin hosting, and device selection remain outstanding. Initial restoration and LAN sessions have the limits documented for 0.2.
 
 The renderer and transport operate on snapshots; changing a layer or monitor mode stops playback, and the new graph is heard on the next play. Long-view spectrograms sample STFT frames rather than computing every intervening frame; zoom in for transient inspection. Spectrum readings describe a frame, not a full-selection frequency average. Source statistics describe the original, not the processed output.
 

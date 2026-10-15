@@ -43,6 +43,8 @@ pub struct Layer {
     pub name: String,
     pub enabled: bool,
     pub gain_db: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub processor: Option<crate::restoration::Processor>,
     pub mask: Mask,
 }
 fn ramp(distance: f64, width: f64) -> f64 {
@@ -179,6 +181,14 @@ pub fn validate_layers(
         {
             return Err("Invalid spectral layer identity or gain (−120 to +24 dB).".into());
         }
+        crate::restoration::validate_processor(l, rate)?;
+        if matches!(
+            l.processor,
+            Some(crate::restoration::Processor::Interpolate)
+        ) && l.mask.time_bounds().1 >= frames as f64
+        {
+            return Err("Interpolation needs a source sample after the selection.".into());
+        }
         let m = &l.mask;
         if !m.feather_time.is_finite()
             || !m.feather_hz.is_finite()
@@ -235,6 +245,19 @@ pub fn validate_layers(
                 }
             }
         }
+    }
+    if layers
+        .iter()
+        .filter(|l| {
+            matches!(
+                l.processor,
+                Some(crate::restoration::Processor::NeuralSpeechV1 { .. })
+            )
+        })
+        .count()
+        > 1
+    {
+        return Err("This engine supports one neural speech layer per project.".into());
     }
     Ok(())
 }
@@ -306,8 +329,17 @@ impl Analyzer {
         rate: u32,
         layer: &Layer,
     ) -> Vec<f64> {
-        if !layer.enabled || layer.gain_db == 0.0 {
+        if !layer.active() {
             return input.to_vec();
+        }
+        match layer.processor {
+            Some(crate::restoration::Processor::Interpolate) => {
+                return crate::restoration::interpolate(input, global_start, channels, layer)
+            }
+            Some(crate::restoration::Processor::NeuralSpeechV1 { strength }) => {
+                return crate::restoration::neural(input, global_start, channels, layer, strength)
+            }
+            _ => (),
         }
         let frames = input.len() / channels;
         let hop = (self.n / 4) as i64;
@@ -344,11 +376,38 @@ impl Analyzer {
                     .process_with_scratch(&mut self.buffer, &mut self.scratch);
                 let mut changed = false;
                 for k in 0..=self.n / 2 {
+                    let delta_gain = match layer.processor {
+                        Some(crate::restoration::Processor::SpectralGate {
+                            threshold_db,
+                            reduction_db,
+                        }) => {
+                            let factor = if k == 0 || k == self.n / 2 { 1.0 } else { 2.0 };
+                            let db = 20.0
+                                * (self.buffer[k].norm() * factor / self.coherent)
+                                    .max(1e-15)
+                                    .log10();
+                            // Smooth 12 dB knee; no adaptive state or frame-order dependence.
+                            let q = ((threshold_db + 6.0 - db) / 12.0).clamp(0.0, 1.0);
+                            10f64.powf(-reduction_db * q * q * (3.0 - 2.0 * q) / 20.0) - 1.0
+                        }
+                        Some(crate::restoration::Processor::Hum {
+                            frequency,
+                            width_hz,
+                            reduction_db,
+                        }) => {
+                            let hz = k as f64 * rate as f64 / self.n as f64;
+                            let harmonic = (hz / frequency).round().max(1.0);
+                            let q = (1.0 - (hz - harmonic * frequency).abs() / width_hz)
+                                .clamp(0.0, 1.0);
+                            10f64.powf(-reduction_db * q / 20.0) - 1.0
+                        }
+                        _ => gain,
+                    };
                     let w = layer.mask.weight(
                         center as f64,
                         k as f64 * rate as f64 / self.n as f64,
                         ch as u16,
-                    ) * gain;
+                    ) * delta_gain;
                     changed |= w != 0.0;
                     self.buffer[k] *= w;
                     if k > 0 && k < self.n / 2 {
@@ -389,7 +448,7 @@ pub fn render_layers(
     {
         return Err("Invalid render input.".into());
     }
-    if layers.iter().all(|l| !l.enabled || l.gain_db == 0.0) {
+    if layers.iter().all(|l| !l.active()) {
         return Ok(input.to_vec());
     }
     let mut a = Analyzer::new(fft_size)?;

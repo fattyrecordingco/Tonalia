@@ -1,3 +1,11 @@
+# Current release status
+
+**0.2.0 development release.** Navigation, initial restoration, offline neural denoising, local recovery and optional LAN sessions are implemented. See [0.2 behavior, algorithms, test coverage and remaining work](RELEASE-0.2.md). No complete roadmap phase or Audition parity is asserted. Installer publication and installed verification are recorded in release reports.
+
+The record below documents the earlier 0.1 baseline; its counts and limits are historical.
+
+---
+
 # Tonalia 0.1 implementation status
 
 **Development release — 15 October 2026.** Implementation was authorized after the research package. This release provides actual local spectral gain editing, native playback and file export. The original [roadmap](../planning/07-roadmap-and-backlog.md) remains the specification for the larger product; no phase or Audition parity gate is declared complete by this release.

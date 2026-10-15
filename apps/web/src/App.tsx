@@ -38,6 +38,9 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
+import { useSession } from './engine/session';
+import { checkpoint, versions, type Recovery } from './engine/recovery';
+import { zoomTime, clampView } from './engine/navigation';
 import { AudioEngine, calibrationFile } from './engine/client';
 import { SpectralCanvas, type Overview } from './components/SpectralCanvas';
 import { NumberField } from './components/NumberField';
@@ -54,6 +57,7 @@ import type {
   SourceRef,
   Statistics,
   Project,
+  Processor,
 } from './types';
 import { formatTime, formatHz, formatDb, maskBounds, isNative } from './types';
 
@@ -74,8 +78,10 @@ function readProject(text: string): Project {
   const p = JSON.parse(text) as Project;
   if (
     p.format !== 'tonalia' ||
-    p.schema !== 1 ||
-    p.engine !== 'spectral-gain-v1' ||
+    !(
+      (p.schema === 1 && p.engine === 'spectral-gain-v1') ||
+      (p.schema === 2 && p.engine === 'spectral-edit-v2')
+    ) ||
     p.fftSize !== 2048
   )
     throw new Error('This project version is not supported. No edits were loaded.');
@@ -152,12 +158,18 @@ export default function App() {
     [fingerprint, setFingerprint] = useState(''),
     [stats, setStats] = useState<Statistics | null>(null);
   const [cursor, setCursor] = useState<Point | null>(null),
-    [tab, setTab] = useState<'edit' | 'analyze'>('edit');
+    [tab, setTab] = useState<'edit' | 'restore' | 'analyze' | 'collaborate'>('edit');
   const [error, setError] = useState(''),
     [notice, setNotice] = useState(''),
     [loading, setLoading] = useState(false),
     [dirty, setDirty] = useState(false),
     [dragging, setDragging] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const shortcutsRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (shortcutsOpen) shortcutsRef.current?.showModal();
+    else shortcutsRef.current?.close();
+  }, [shortcutsOpen]);
   const [exportError, setExportError] = useState('');
   const [exportOpen, setExportOpen] = useState(false),
     [exporting, setExporting] = useState(false),
@@ -298,8 +310,85 @@ export default function App() {
     if (exportOpen && !dialog?.open) dialog?.showModal();
     else if (!exportOpen && dialog?.open) dialog.close();
   }, [exportOpen]);
+  const applyShared = useCallback(
+    (next: Layer[]) => {
+      void stop();
+      setHistory({ past: [], present: next, future: [] });
+      setSelection(null);
+      setSelectedId(null);
+      setDirty(true);
+    },
+    [stop],
+  );
+  const session = useSession(
+    info && fingerprint
+      ? {
+          sha256: fingerprint,
+          frames: info.frames,
+          sampleRate: info.sampleRate,
+          channels: info.channels,
+        }
+      : null,
+    applyShared,
+  );
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+  const [lan, setLan] = useState(false),
+    [invite, setInvite] = useState(''),
+    [hostAddress, setHostAddress] = useState('127.0.0.1');
+  const [recoveryList, setRecoveryList] = useState<Recovery[]>([]),
+    [recoveryOpen, setRecoveryOpen] = useState(false);
+  const recoveryRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (recoveryOpen) recoveryRef.current?.showModal();
+    else recoveryRef.current?.close();
+  }, [recoveryOpen]);
+  const manifest = useCallback(
+    (): Project | null =>
+      info && fingerprint
+        ? {
+            format: 'tonalia',
+            schema: 2,
+            engine: 'spectral-edit-v2',
+            fftSize: 2048,
+            source: {
+              name: nameRef.current,
+              size: sourceSize.current,
+              sha256: fingerprint,
+              sampleRate: info.sampleRate,
+              channels: info.channels,
+              frames: info.frames,
+            },
+            layers,
+            view,
+          }
+        : null,
+    [info, fingerprint, layers, view],
+  );
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const p = manifest();
+      if (p)
+        void checkpoint(p).catch(() =>
+          notify('Local recovery storage is unavailable. Save a project file to keep your edits.'),
+        );
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [manifest, notify]);
+  const showRecovery = async () => {
+    try {
+      setRecoveryList(await versions());
+      setRecoveryOpen(true);
+    } catch (e) {
+      setError(String(e));
+    }
+  };
   const commit = useCallback(
     (next: Layer[], message?: string) => {
+      if (sessionRef.current.connection) {
+        void sessionRef.current.submit(next);
+        return;
+      }
       void stop();
       setHistory((h) => ({ past: [...h.past.slice(-99), h.present], present: next, future: [] }));
       setDirty(true);
@@ -308,7 +397,7 @@ export default function App() {
     [stop, notify],
   );
   const undo = useCallback(() => {
-    if (!history.past.length) return;
+    if (sessionRef.current.connection || !history.past.length) return;
     void stop();
     setHistory((h) => ({
       past: h.past.slice(0, -1),
@@ -320,7 +409,7 @@ export default function App() {
     setDirty(true);
   }, [history.past.length, stop]);
   const redo = useCallback(() => {
-    if (!history.future.length) return;
+    if (sessionRef.current.connection || !history.future.length) return;
     void stop();
     setHistory((h) => ({
       past: [...h.past, h.present],
@@ -333,6 +422,7 @@ export default function App() {
   }, [history.future.length, stop]);
   const openSource = useCallback(
     async (source: SourceRef) => {
+      if (sessionRef.current.connection) await sessionRef.current.leave();
       if (exporting) {
         setError('Finish or cancel the export before opening another source.');
         await engine.discardCandidate(source);
@@ -435,6 +525,12 @@ export default function App() {
   }, [selection, info]);
   const applyGain = useCallback(async () => {
     if (!selection || !info) return;
+    if (selectedId && layers.find((l) => l.id === selectedId)?.processor) {
+      setError(
+        'Use the Restore panel to update this restoration layer, or choose a new selection for a gain layer.',
+      );
+      return;
+    }
     try {
       const layer: Layer = {
         id: selectedId || crypto.randomUUID(),
@@ -456,6 +552,66 @@ export default function App() {
       setError(e instanceof Error ? e.message : String(e));
     }
   }, [selection, info, selectedId, layerName, gain, layers, engine, commit]);
+  const [restoreKind, setRestoreKind] = useState<Processor['kind']>('spectralGate');
+  const [threshold, setThreshold] = useState(-45);
+  const [reduction, setReduction] = useState(18);
+  const [humHz, setHumHz] = useState(50);
+  const [neuralStrength, setNeuralStrength] = useState(0.8);
+  const applyRestoration = async () => {
+    if (!info || !selection) return;
+    try {
+      const timeOnly = restoreKind === 'interpolate' || restoreKind === 'neuralSpeechV1';
+      const bounds = maskBounds(selection);
+      const processor: Processor =
+        restoreKind === 'spectralGate'
+          ? { kind: restoreKind, thresholdDb: threshold, reductionDb: reduction }
+          : restoreKind === 'hum'
+            ? {
+                kind: restoreKind,
+                frequency: humHz,
+                widthHz: info.sampleRate / 2048,
+                reductionDb: reduction,
+              }
+            : restoreKind === 'neuralSpeechV1'
+              ? { kind: restoreKind, strength: neuralStrength }
+              : { kind: restoreKind };
+      const labels = {
+        spectralGate: 'Spectral gate',
+        hum: 'Harmonic hum attenuation',
+        interpolate: 'Short-click interpolation',
+        neuralSpeechV1: 'Neural speech denoise',
+      };
+      const mask: Mask = timeOnly
+        ? {
+            channel: selection.channel,
+            featherHz: 0,
+            featherTime: 0,
+            shape: {
+              kind: 'rectangle',
+              start: Math.max(0, Math.floor(bounds.start)),
+              end: Math.min(info.frames, Math.ceil(bounds.end)),
+              low: 0,
+              high: info.sampleRate / 2,
+            },
+          }
+        : structuredClone(selection);
+      const layer: Layer = {
+        id: crypto.randomUUID(),
+        name: labels[restoreKind],
+        enabled: true,
+        gainDb: 0,
+        processor,
+        mask,
+      };
+      const next = [...layers, layer];
+      await engine.call('validate', { layers: next });
+      commit(next, 'Restoration layer created. Audition Result and Removed before exporting.');
+      setSelectedId(layer.id);
+      setSelection(mask);
+    } catch (e) {
+      setError(String(e));
+    }
+  };
   const play = useCallback(async () => {
     if (playing || preparing) {
       await stop();
@@ -491,8 +647,8 @@ export default function App() {
     }
     const project: Project = {
       format: 'tonalia',
-      schema: 1,
-      engine: 'spectral-gain-v1',
+      schema: 2,
+      engine: 'spectral-edit-v2',
       fftSize: 2048,
       source: {
         name: nameRef.current,
@@ -518,6 +674,7 @@ export default function App() {
     async (text: string) => {
       try {
         const project = readProject(text);
+        if (sessionRef.current.connection) await sessionRef.current.leave();
         if (dirty && !window.confirm('Load this project and discard unsaved layer edits?')) return;
         await stop();
         setProjectMenu(false);
@@ -548,54 +705,79 @@ export default function App() {
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (
-        e.target instanceof HTMLElement &&
-        e.target.closest('input, textarea, select, [contenteditable="true"],dialog')
+        e.isComposing ||
+        (e.target instanceof HTMLElement &&
+          e.target.closest('input, textarea, select, [contenteditable="true"], dialog')) ||
+        document.querySelector('dialog[open]')
       )
         return;
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-        e.preventDefault();
-        if (e.shiftKey) redo();
-        else undo();
-        return;
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        void saveProject();
-        return;
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        void applyGain();
-        return;
-      }
-      if (e.code === 'Space') {
-        e.preventDefault();
-        void play();
-        return;
-      }
-      if (e.key === 'Escape') {
+      const cmd = e.ctrlKey || e.metaKey;
+      const k = e.key.toLowerCase();
+      let handled = true;
+      if (cmd && k === 'z') {
+        if (!e.repeat) {
+          if (e.shiftKey) redo();
+          else undo();
+        }
+      } else if (cmd && k === 'y') {
+        if (!e.repeat) redo();
+      } else if (cmd && k === 's') {
+        if (!e.repeat) void saveProject();
+      } else if (cmd && k === 'o') {
+        if (!e.repeat) void chooseAudio();
+      } else if (cmd && k === 'e') {
+        if (info && !e.repeat) setExportOpen(true);
+      } else if (cmd && k === 'a') {
+        if (info)
+          setRegion({
+            shape: {
+              kind: 'rectangle',
+              start: 0,
+              end: info.frames,
+              low: 0,
+              high: info.sampleRate / 2,
+            },
+            channel,
+            featherTime: 0,
+            featherHz: 0,
+          });
+      } else if (cmd && k === 'enter') {
+        if (!e.repeat) void applyGain();
+      } else if (e.code === 'Space') {
+        if (!e.repeat) void play();
+      } else if (k === 'escape') {
         setRegion(null);
         setProjectMenu(false);
-        return;
-      }
-      if (e.shiftKey && e.code === 'Digit1') {
-        e.preventDefault();
-        fit();
-        return;
-      }
-      if (e.shiftKey && e.code === 'Digit2') {
-        e.preventDefault();
-        fitSelection();
-        return;
-      }
-      const t = tools.find((t) => t.key.toLowerCase() === e.key.toLowerCase());
-      if (t && !e.ctrlKey && !e.metaKey) setTool(t.id);
-      if (e.key === '[') setBrushSize((v) => Math.max(8, v - 4));
-      if (e.key === ']') setBrushSize((v) => Math.min(120, v + 4));
+      } else if (k === '?' && !cmd) setShortcutsOpen(true);
+      else if ((e.shiftKey && e.code === 'Digit1') || k === '0') fit();
+      else if (e.shiftKey && e.code === 'Digit2') fitSelection();
+      else if (k === '+' || k === '=' || k === '-') {
+        if (info) setView((v) => zoomTime(v, info.frames, k === '-' ? 2 : 0.5));
+      } else if (k === 'home' || k === 'end') {
+        if (info) seek(k === 'home' ? 0 : info.frames);
+      } else if (k === 'arrowleft' || k === 'arrowright') {
+        if (info)
+          setView((v) => {
+            const d = (v.end - v.start) * (k === 'arrowleft' ? -0.1 : 0.1);
+            return clampView({ ...v, start: v.start + d, end: v.end + d }, info.frames);
+          });
+      } else if ((k === 'delete' || k === 'backspace') && selectedId) {
+        if (!e.repeat) {
+          commit(layers.filter((l) => l.id !== selectedId));
+          setSelectedId(null);
+        }
+      } else if (!cmd && !e.altKey) {
+        const t = tools.find((t) => t.key.toLowerCase() === k);
+        if (t) setTool(t.id);
+        else if (k === '[') setBrushSize((v) => Math.max(8, v - 4));
+        else if (k === ']') setBrushSize((v) => Math.min(120, v + 4));
+        else handled = false;
+      } else handled = false;
+      if (handled) e.preventDefault();
     };
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, [redo, undo, saveProject, applyGain, play, setRegion, fit, fitSelection]);
+  });
   const bounds = selection
     ? maskBounds(selection)
     : {
@@ -647,7 +829,7 @@ export default function App() {
     setLayerName(l.name);
     setGain(l.gainDb);
     setChannel(l.mask.channel);
-    setTab('edit');
+    setTab(l.processor ? 'restore' : 'edit');
   };
   const reorder = (index: number, direction: number) => {
     const next = [...layers];
@@ -737,6 +919,16 @@ export default function App() {
           </span>
         </div>
         <div className="header-actions">
+          <button className="quiet-button" onClick={() => void showRecovery()}>
+            History
+          </button>
+          <button
+            className="quiet-button"
+            title="Keyboard shortcuts (?)"
+            onClick={() => setShortcutsOpen(true)}
+          >
+            Shortcuts
+          </button>
           <div className="project-dropdown">
             <button
               className="quiet-button"
@@ -856,7 +1048,7 @@ export default function App() {
             aria-label="Undo"
             title="Undo (Ctrl+Z)"
             onClick={undo}
-            disabled={!history.past.length}
+            disabled={!!session.connection || !history.past.length}
           >
             <Undo2 size={16} />
           </button>
@@ -864,7 +1056,7 @@ export default function App() {
             aria-label="Redo"
             title="Redo (Ctrl+Shift+Z)"
             onClick={redo}
-            disabled={!history.future.length}
+            disabled={!!session.connection || !history.future.length}
           >
             <Redo2 size={16} />
           </button>
@@ -901,7 +1093,9 @@ export default function App() {
         <aside className="left-panel" aria-label="Source and spectral layers">
           <div className="panel-heading">
             <h2>Session</h2>
-            <span className="session-badge">Local</span>
+            <span className="session-badge">
+              {session.connection ? `Shared · r${session.revision}` : 'Local'}
+            </span>
           </div>
           <div className="source-card">
             <div className="source-icon">
@@ -960,8 +1154,14 @@ export default function App() {
                     <button className="layer-main" onClick={() => selectLayer(l)}>
                       <span>{l.name}</span>
                       <small>
-                        {l.gainDb > 0 ? '+' : ''}
-                        {l.gainDb.toFixed(1)} dB{' '}
+                        {l.processor
+                          ? {
+                              spectralGate: 'Spectral gate',
+                              hum: 'Harmonic notches',
+                              interpolate: 'Time interpolation',
+                              neuralSpeechV1: 'Offline neural model',
+                            }[l.processor.kind]
+                          : `${l.gainDb > 0 ? '+' : ''}${l.gainDb.toFixed(1)} dB`}{' '}
                         <span>
                           · {l.mask.shape.kind} ·{' '}
                           {l.mask.channel === null ? 'Linked' : l.mask.channel === 0 ? 'L' : 'R'}
@@ -1109,7 +1309,22 @@ export default function App() {
             >
               Analyze
             </button>
-            <SlidersHorizontal size={15} />
+            <button
+              role="tab"
+              aria-selected={tab === 'restore'}
+              className={tab === 'restore' ? 'active' : ''}
+              onClick={() => setTab('restore')}
+            >
+              Restore
+            </button>
+            <button
+              role="tab"
+              aria-selected={tab === 'collaborate'}
+              className={tab === 'collaborate' ? 'active' : ''}
+              onClick={() => setTab('collaborate')}
+            >
+              Share
+            </button>
           </div>
           <div className="inspector-content">
             {tab === 'edit' ? (
@@ -1303,6 +1518,213 @@ export default function App() {
                   )}
                 </div>
               </>
+            ) : tab === 'restore' ? (
+              <div className="inspector-section">
+                <h3>Reversible restoration</h3>
+                <label className="field-label">
+                  Operation
+                  <select
+                    aria-label="Restoration operation"
+                    value={restoreKind}
+                    onChange={(e) => setRestoreKind(e.target.value as Processor['kind'])}
+                  >
+                    <option value="spectralGate">Spectral gate</option>
+                    <option value="hum">Harmonic hum attenuation</option>
+                    <option value="interpolate">Short-click interpolation</option>
+                    <option value="neuralSpeechV1">Offline neural speech denoise</option>
+                  </select>
+                </label>
+                {restoreKind === 'spectralGate' && (
+                  <NumberField
+                    label="Gate threshold"
+                    value={threshold}
+                    min={-120}
+                    max={0}
+                    digits={1}
+                    unit="dBFS"
+                    onCommit={setThreshold}
+                  />
+                )}
+                {(restoreKind === 'spectralGate' || restoreKind === 'hum') && (
+                  <NumberField
+                    label="Maximum reduction"
+                    value={reduction}
+                    min={0}
+                    max={60}
+                    digits={1}
+                    unit="dB"
+                    onCommit={setReduction}
+                  />
+                )}
+                {restoreKind === 'hum' && (
+                  <NumberField
+                    label="Hum fundamental"
+                    value={humHz}
+                    min={20}
+                    max={200}
+                    digits={1}
+                    unit="Hz"
+                    onCommit={setHumHz}
+                  />
+                )}
+                {restoreKind === 'neuralSpeechV1' && (
+                  <NumberField
+                    label="Neural strength"
+                    value={neuralStrength}
+                    min={0}
+                    max={1}
+                    digits={2}
+                    unit=""
+                    onCommit={setNeuralStrength}
+                  />
+                )}
+                <p className="caption">
+                  {restoreKind === 'spectralGate'
+                    ? 'Attenuates bins below a calibrated threshold with a 12 dB soft knee. This is a spectral gate, not learned noise-profile subtraction.'
+                    : restoreKind === 'hum'
+                      ? 'FFT harmonic notches at the fundamental and its multiples. Width is one processing FFT bin; low-frequency resolution is limited.'
+                      : restoreKind === 'interpolate'
+                        ? 'Replaces a short click with a line between intact neighboring samples. Select at most 10 ms, away from source edges. Uses the full frequency band.'
+                        : 'Experimental RNNoise speech model included in the app. Runs offline at 48 kHz, independently per channel. Full-band time selection; fixed context and delay compensation. May alter music or speech; always audition.'}
+                </p>
+                <button
+                  className="apply-button"
+                  disabled={!info || !selection || exporting || !!pendingProject}
+                  onClick={() => void applyRestoration()}
+                >
+                  <Plus size={15} />
+                  Create restoration layer
+                </button>
+                <p className="caption">
+                  Layers can be bypassed, reordered, undone and saved. Creating a restoration always
+                  adds a new layer; delete and recreate it to change parameters.
+                </p>
+              </div>
+            ) : tab === 'collaborate' ? (
+              <div className="inspector-section">
+                <h3>Local-network co-editing</h3>
+                <p className="caption">
+                  Experimental. Each participant opens the identical WAV locally. Only layer graphs
+                  are sent; audio stays on each computer. Accepted revisions are serialized by the
+                  host. Shared undo is disabled.
+                </p>
+                {!isNative() ? (
+                  <p className="caption">Use the installed desktop app to host or join.</p>
+                ) : session.connection ? (
+                  <>
+                    <p>
+                      Connected · revision {session.revision}
+                      {session.busy ? ' · awaiting acknowledgment' : ''}
+                    </p>
+                    {session.connection.host && (
+                      <>
+                        <label>
+                          Host LAN IP
+                          <input
+                            aria-label="Host LAN IP"
+                            value={hostAddress}
+                            onChange={(e) => setHostAddress(e.target.value)}
+                          />
+                        </label>
+                        <p className="caption">
+                          For another computer, enter this host’s private IP. The listener must have
+                          been started with LAN access.
+                        </p>
+                        <textarea
+                          aria-label="Session invite"
+                          readOnly
+                          rows={4}
+                          value={JSON.stringify({
+                            endpoint: session.connection.endpoint.replace(
+                              '127.0.0.1',
+                              hostAddress.trim(),
+                            ),
+                            token: session.connection.token,
+                          })}
+                        />
+                      </>
+                    )}
+                    <button
+                      className="quiet-button"
+                      onClick={() => void session.leave().catch((e) => setError(String(e)))}
+                    >
+                      Leave session{session.connection.host ? ' and stop host' : ''}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={lan}
+                        onChange={(e) => setLan(e.target.checked)}
+                      />{' '}
+                      Allow private LAN connections
+                    </label>
+                    <p className="caption">
+                      LAN sessions use unencrypted HTTP and a secret invite token. Share only on a
+                      trusted network. No port forwarding; no hosted service.
+                    </p>
+                    <button
+                      className="apply-button"
+                      disabled={!fingerprint || exporting}
+                      onClick={() =>
+                        void session.host(layers, lan).catch((e) => setError(String(e)))
+                      }
+                    >
+                      Host session
+                    </button>
+                    <label>
+                      Paste invite
+                      <textarea
+                        aria-label="Paste session invite"
+                        rows={4}
+                        value={invite}
+                        onChange={(e) => setInvite(e.target.value)}
+                      />
+                    </label>
+                    <button
+                      className="quiet-button"
+                      disabled={!fingerprint || !invite || exporting}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            'Join this session and replace your current layer graph with the host’s graph? Save your project first.',
+                          )
+                        )
+                          void session.join(invite).catch((e) => setError(String(e)));
+                      }}
+                    >
+                      Join session
+                    </button>
+                  </>
+                )}
+                <p className="caption" role="status">
+                  {session.status}
+                </p>
+                {session.hasConflict && (
+                  <button
+                    className="quiet-button"
+                    onClick={() => {
+                      const p = manifest();
+                      if (p && session.conflict.current) {
+                        const blob = new Blob(
+                          [JSON.stringify({ ...p, layers: session.conflict.current }, null, 2)],
+                          { type: 'application/json' },
+                        );
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'Tonalia-rejected-proposal.tonalia';
+                        a.click();
+                        setTimeout(() => URL.revokeObjectURL(url), 30000);
+                      }
+                    }}
+                  >
+                    Download rejected proposal
+                  </button>
+                )}
+              </div>
             ) : (
               <>
                 <SpectrumPlot analysis={analysis} position={cursor?.sample ?? position} />
@@ -1622,6 +2044,83 @@ export default function App() {
             Export WAV
           </button>
         </div>
+      </dialog>
+      <dialog
+        ref={recoveryRef}
+        onClose={() => setRecoveryOpen(false)}
+        aria-label="Local version history"
+      >
+        <div className="section-heading">
+          <h2>Local recovery history</h2>
+          <button aria-label="Close history" onClick={() => setRecoveryOpen(false)}>
+            <X size={18} />
+          </button>
+        </div>
+        <p className="caption">
+          Up to 20 local layer checkpoints, saved after 1.5 seconds of inactivity. Original WAV
+          files are required. Browser/app storage can be cleared; keep project backups.
+        </p>
+        {recoveryList.length === 0 && <p>No recovery checkpoints yet.</p>}
+        {recoveryList.map((entry) => (
+          <div className="recovery-row" key={entry.id}>
+            <span>
+              {entry.project.source.name}
+              <small>
+                {new Date(entry.time).toLocaleString()} · {entry.project.layers.length} layers
+              </small>
+            </span>
+            <button
+              className="quiet-button"
+              onClick={() => {
+                setRecoveryOpen(false);
+                void loadProject(JSON.stringify(entry.project));
+              }}
+            >
+              Restore
+            </button>
+          </div>
+        ))}
+      </dialog>
+      <dialog
+        ref={shortcutsRef}
+        onClose={() => setShortcutsOpen(false)}
+        aria-label="Keyboard shortcuts"
+      >
+        <div className="section-heading">
+          <h2>Keyboard & navigation</h2>
+          <button aria-label="Close shortcuts" onClick={() => setShortcutsOpen(false)}>
+            <X size={18} />
+          </button>
+        </div>
+        <p className="caption">
+          Use Ctrl on Windows/Linux or ⌘ on macOS. Shortcuts pause while typing or using a dialog.
+        </p>
+        <dl className="shortcut-list">
+          {[
+            ['Space', 'Play / stop'],
+            ['T / M / L / B / H', 'Time / rectangle / lasso / brush / hand'],
+            ['+ / −', 'Zoom time in / out'],
+            ['0 or Shift+1', 'Fit source'],
+            ['Shift+2', 'Fit selection'],
+            ['← / →', 'Pan time'],
+            ['Home / End', 'Seek source start / end'],
+            ['[ / ]', 'Brush size'],
+            ['Ctrl+O / Ctrl+S / Ctrl+E', 'Open WAV / save project / export'],
+            ['Ctrl+A', 'Select the full source'],
+            ['Ctrl+Enter', 'Apply gain layer'],
+            ['Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y', 'Undo / redo'],
+            ['Delete', 'Delete selected layer'],
+            ['Escape', 'Clear selection / close dialog'],
+            ['Wheel / trackpad pinch', 'Zoom at pointer'],
+            ['Shift+wheel / horizontal scroll', 'Pan time'],
+            ['Alt+wheel', 'Zoom frequency at pointer'],
+          ].map(([keys, action]) => (
+            <div key={keys}>
+              <dt>{keys}</dt>
+              <dd>{action}</dd>
+            </div>
+          ))}
+        </dl>
       </dialog>
     </div>
   );
