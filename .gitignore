@@ -3,6 +3,7 @@ dist/
 target/
 release/
 installation-check-*.json
+docs/implementation/windows-build-offline.*
 src-tauri/gen/
 src-tauri/icons/android/
 src-tauri/icons/ios/

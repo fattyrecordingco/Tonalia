@@ -41,8 +41,18 @@ const port = await new Promise((resolvePort) => {
     server.close(() => resolvePort(p));
   });
 });
-const child = spawn(resolve('target/release/tonalia-desktop.exe'), [inputPath], {
-  env: { ...process.env, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}` },
+const executable =
+  process.env.TONALIA_TEST_EXECUTABLE || resolve('target/release/tonalia-desktop.exe');
+const offline = process.env.TONALIA_TEST_OFFLINE === '1';
+const reportFile = process.env.TONALIA_TEST_REPORT || 'docs/implementation/native-smoke.json';
+const networkArguments = offline
+  ? ' --proxy-server=http://127.0.0.1:9 --proxy-bypass-list="*.localhost;localhost;127.0.0.1" --host-resolver-rules="MAP * ~NOTFOUND, EXCLUDE ipc.localhost, EXCLUDE tauri.localhost, EXCLUDE 127.0.0.1"'
+  : '';
+const child = spawn(executable, [inputPath], {
+  env: {
+    ...process.env,
+    WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}${networkArguments}`,
+  },
   stdio: 'ignore',
 });
 let browser;
@@ -61,6 +71,19 @@ try {
   assert(available, 'The packaged WebView did not expose its test-only CDP endpoint.');
   browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
   const context = browser.contexts()[0];
+  const externalRequests = [];
+  if (offline) {
+    await context.route('**/*', (route) => {
+      const url = new URL(route.request().url());
+      if (
+        ['tauri.localhost', 'ipc.localhost', 'localhost', '127.0.0.1'].includes(url.hostname) ||
+        !['http:', 'https:', 'ws:', 'wss:'].includes(url.protocol)
+      )
+        return route.continue();
+      externalRequests.push(url.origin);
+      return route.abort('internetdisconnected');
+    });
+  }
   let page;
   for (let i = 0; i < 100; i++) {
     page = context.pages().find((p) => /tauri\.localhost|tauri:\/\//.test(p.url()));
@@ -236,13 +259,19 @@ try {
   assert(candidatePreserved, 'Releasing an unaccepted source invalidated the current source.');
   await page.getByText(/2048 FFT/).waitFor({ timeout: 60000 });
   await mkdir('docs/implementation', { recursive: true });
-  await page.screenshot({ path: 'docs/implementation/desktop-workspace.png' });
+  await page.screenshot({ path: reportFile.replace(/\.json$/, '.png') });
   const report = {
     date: new Date().toISOString(),
     platform: process.platform,
     arch: process.arch,
     webview: browser.version(),
     nativeIpc: true,
+    executable: executable.replace(process.env.USERPROFILE || '\u0000', '%USERPROFILE%'),
+    offlineWebView: offline,
+    networkIsolation: offline
+      ? 'Outbound HTTP(S) uses an unreachable per-process proxy; external DNS is blocked. Local Tauri IPC remains available. Browser routing also rejects external origins.'
+      : null,
+    externalRequests,
     sourceLoadAndAnalysisMs: Math.round(loadMs),
     nativePlaybackPosition,
     nativePlaybackErrors: alerts,
@@ -262,7 +291,9 @@ try {
       'Development smoke test only. No physical loopback, latency or long-session qualification.',
   };
   assert.deepEqual(errors, []);
-  await writeFile('docs/implementation/native-smoke.json', JSON.stringify(report, null, 2) + '\n');
+  if (offline)
+    assert.deepEqual(externalRequests, [], 'The installed app attempted an external request.');
+  await writeFile(reportFile, JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report, null, 2));
 } catch (error) {
   if (browser) {

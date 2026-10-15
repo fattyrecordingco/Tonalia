@@ -15,6 +15,8 @@ for (const platform of ['windows', 'macos-arm64', 'macos-x64', 'linux']) {
   const report = JSON.parse(await readFile(`release/verification-${platform}.json`, 'utf8'));
   if (!report.passed || !report.installedPackage)
     throw new Error(`Installation check failed: ${platform}`);
+  if (platform === 'linux' && !report.appImage?.passed)
+    throw new Error('AppImage launch check is missing.');
 }
 await copyFile('docs/INSTALL.md', 'release/INSTALL.md');
 const sum = [];
