@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Tonalia",
+  "version": "0.1.0",
+  "identifier": "co.fattyrecording.tonalia",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Tonalia — Fatty Recording Co",
+        "width": 1480,
+        "height": 960,
+        "minWidth": 1000,
+        "minHeight": 680,
+        "backgroundColor": "#191d24"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src ipc: http://ipc.localhost 'self'; media-src 'self' blob:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "Fatty Recording Co",
+    "homepage": "https://github.com/fattyrecordingco/Tonalia",
+    "license": "MIT",
+    "licenseFile": "../LICENSE",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "shortDescription": "Nondestructive spectral audio editing",
+    "longDescription": "Local spectral audio editing with reversible layers, calibrated analysis and original-rate WAV export. Developed by Fatty Recording Co.",
+    "copyright": "Copyright Fatty Recording Co",
+    "category": "Music"
+  }
+}

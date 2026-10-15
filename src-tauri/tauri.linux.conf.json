@@ -1,0 +1,9 @@
+{
+  "bundle": {
+    "targets": ["deb", "appimage"],
+    "linux": {
+      "deb": { "section": "sound" },
+      "appimage": { "bundleMediaFramework": true }
+    }
+  }
+}

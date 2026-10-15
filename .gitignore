@@ -1,0 +1,15 @@
+node_modules/
+dist/
+target/
+release/
+installation-check-*.json
+src-tauri/gen/
+src-tauri/icons/android/
+src-tauri/icons/ios/
+apps/web/src/wasm/
+playwright-report/
+test-results/
+*.log
+.DS_Store
+*.wav
+*.tonalia.json

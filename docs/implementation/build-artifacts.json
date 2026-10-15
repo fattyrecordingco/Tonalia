@@ -1,0 +1,17 @@
+{
+  "version": "0.1.0",
+  "platform": "Windows x64",
+  "signed": false,
+  "artifacts": [
+    {
+      "path": "target/release/tonalia-desktop.exe",
+      "bytes": 10568192,
+      "sha256": "426178bdceea6ccaf9af3f1887db60f974eabbcc178ed6312d71a2e0bcfbf254"
+    },
+    {
+      "path": "target/release/bundle/nsis/Tonalia_0.1.0_x64-setup.exe",
+      "bytes": 2639984,
+      "sha256": "4a3673eb8c2f71273794ae3b2a674fd2bfe3948aed3ce2fecee02bd810cc6ccd"
+    }
+  ]
+}

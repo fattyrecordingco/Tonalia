@@ -1,0 +1,7 @@
+node_modules/
+target/
+dist/
+apps/web/src/wasm/
+docs/planning/
+playwright-report/
+test-results/

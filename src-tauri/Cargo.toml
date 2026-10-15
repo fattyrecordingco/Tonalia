@@ -1,0 +1,22 @@
+[package]
+name = "tonalia-desktop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+default-run = "tonalia-desktop"
+
+[build-dependencies]
+tauri-build = { version = "2.7.3", features = [] }
+
+[dependencies]
+tonalia-core = { path = "../crates/tonalia-core" }
+serde.workspace = true
+serde_json.workspace = true
+tauri = { version = "2.12.4", features = [] }
+tauri-plugin-dialog = "2.8.3"
+cpal = "0.18.2"
+rtrb = "0.4.0"
+sha2 = "0.10.9"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

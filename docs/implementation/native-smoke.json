@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-15T11:35:37.933Z",
+  "platform": "win32",
+  "arch": "x64",
+  "webview": "155.0.4283.45",
+  "nativeIpc": true,
+  "sourceLoadAndAnalysisMs": 1400,
+  "nativePlaybackPosition": "0:00.532",
+  "nativePlaybackErrors": [],
+  "exportFrames": 192000,
+  "exportRate": 48000,
+  "exportBits": 64,
+  "measuredGainDb": -5.999999670508216,
+  "untouchedRightChannelMaxError": 0,
+  "outsideSupportMaxError": 0,
+  "sourceBytesUnchanged": true,
+  "sourceOverwritePrevented": true,
+  "nativeProjectSaved": true,
+  "projectSourceOverwritePrevented": true,
+  "cancelledCandidatePreservesCurrentSource": true,
+  "pageErrors": [],
+  "qualification": "Development smoke test only. No physical loopback, latency or long-session qualification."
+}

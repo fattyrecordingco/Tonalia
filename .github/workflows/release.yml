@@ -1,0 +1,126 @@
+name: Build and publish installers
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag, matching the package version'
+        required: true
+        default: 'v0.1.0'
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  package:
+    name: Package and install (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+          - platform: macos-arm64
+            os: macos-14
+            target: aarch64-apple-darwin
+            bundles: dmg
+          - platform: macos-x64
+            os: macos-15-intel
+            target: x86_64-apple-darwin
+            bundles: dmg
+          - platform: linux
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundles: deb,appimage
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.94.0
+          targets: wasm32-unknown-unknown,${{ matrix.target }}
+          components: rustfmt,clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+      - name: Install Linux build and runtime dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf libasound2-dev libssl-dev xvfb dbus-x11 libfuse2
+      - run: npm ci
+      - run: cargo fmt --all --check
+      - run: cargo test --locked -p tonalia-core
+      - run: npm run build
+      - name: Browser integration tests
+        if: runner.os == 'Windows'
+        run: |
+          npx playwright install chromium
+          npm run test:e2e
+      - name: Build native installer
+        run: >-
+          npm run desktop:build -- --target ${{ matrix.target }}
+          --bundles ${{ matrix.bundles }}
+          --config '{"build":{"beforeBuildCommand":""}}'
+      - name: Stage clearly named release assets
+        run: node scripts/stage-release.mjs '${{ matrix.platform }}' '${{ matrix.target }}'
+      - name: Install and run package (Windows and macOS)
+        if: runner.os != 'Linux'
+        run: node scripts/install-smoke.mjs '${{ matrix.platform }}'
+      - name: Install and run package without internet (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node scripts/install-smoke.mjs linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.platform }}
+          path: release/*
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: diagnostics-${{ matrix.platform }}
+          path: |
+            playwright-report/
+            test-results/
+            release/verification-*.json
+  publish:
+    name: Publish verified installers
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: installers-*
+          merge-multiple: true
+          path: release
+      - run: node scripts/release-checksums.mjs
+      - name: Create draft and upload installers
+        run: |
+          gh release create "$RELEASE_TAG" release/* --verify-tag --draft --prerelease --title "Tonalia ${RELEASE_TAG#v} — development release" --notes-file docs/RELEASE-NOTES.md
+      - name: Make downloads public
+        run: gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false
