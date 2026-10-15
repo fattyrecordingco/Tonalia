@@ -1,0 +1,42 @@
+{
+  "appVersion": "0.2.0",
+  "sharedSession": {
+    "acceptedRevision": 1,
+    "conflict": true,
+    "retainedLayers": 1,
+    "badToken": true,
+    "badSource": true
+  },
+  "restoration": {
+    "nativeGate": true,
+    "nativeNeural": true,
+    "neuralDifference": 75.33393107057583,
+    "neuralExportMs": 209.3737999999994
+  },
+  "date": "2026-10-15T16:04:59.216Z",
+  "platform": "win32",
+  "arch": "x64",
+  "webview": "155.0.4283.45",
+  "nativeIpc": true,
+  "nativeOpenExportAndProjectPickers": true,
+  "executable": "%USERPROFILE%\\AppData\\Local\\Tonalia-0.2.0\\tonalia-desktop.exe",
+  "offlineWebView": true,
+  "networkIsolation": "Outbound HTTP(S) uses an unreachable per-process proxy; external DNS is blocked. Local Tauri IPC remains available. Browser routing also rejects external origins.",
+  "externalRequests": [],
+  "sourceLoadAndAnalysisMs": 1418,
+  "nativePlaybackPosition": "0:00.532",
+  "nativePlaybackErrors": [],
+  "exportFrames": 192000,
+  "exportRate": 48000,
+  "exportBits": 64,
+  "measuredGainDb": -5.999999670508216,
+  "untouchedRightChannelMaxError": 0,
+  "outsideSupportMaxError": 0,
+  "sourceBytesUnchanged": true,
+  "sourceOverwritePrevented": true,
+  "nativeProjectSaved": true,
+  "projectSourceOverwritePrevented": true,
+  "cancelledCandidatePreservesCurrentSource": true,
+  "pageErrors": [],
+  "qualification": "Development smoke test only. No physical loopback, latency or long-session qualification."
+}

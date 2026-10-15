@@ -98,4 +98,8 @@ See the [README](https://github.com/fattyrecordingco/Tonalia#readme) for tools, 
 
 ## New in 0.2
 
-Press **?** for keyboard shortcuts. Scroll or pinch over the canvas to zoom; Shift-scroll pans and Alt-scroll zooms frequency. **Restore** creates reversible restoration layers, **History** opens local recovery checkpoints, and **Share** hosts or joins an optional local-network session. Neural speech denoising works offline at 48 kHz with its included model. See [feature scope and limitations](implementation/RELEASE-0.2.md).
+Press **?** for keyboard shortcuts. Scroll or pinch over the canvas to zoom; Shift-scroll pans and Alt-scroll zooms frequency. **Restore** creates reversible restoration layers, **History** opens local recovery checkpoints, and **Share** hosts or joins an optional local-network session. Neural speech denoising works offline at 48 kHz with its included model. See [feature scope and limitations](https://github.com/fattyrecordingco/Tonalia/blob/main/docs/implementation/RELEASE-0.2.md).
+
+## Upgrading an existing installation
+
+Save an explicit project file and close the old app before replacing it. Open the installer for the same CPU architecture and follow its upgrade steps. Version 0.2 can reopen version 0.1 gain projects after verifying the original WAV. Version 0.1 cannot open new schema 2 projects. Your original WAV remains separate from the app and its local recovery history.

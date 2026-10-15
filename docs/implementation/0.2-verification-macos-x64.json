@@ -1,0 +1,24 @@
+{
+  "channels": 2,
+  "frontendMounted": true,
+  "leftGainMaxError": 7.0781590033597305e-9,
+  "origin": "tauri://localhost",
+  "passed": true,
+  "renderedFrames": 4096,
+  "restoration": {
+    "bundledNeuralModel": true,
+    "gateMaxError": 8.528397189844216e-10,
+    "neuralDifference": 17.162781986726706,
+    "neuralRenderMs": 259
+  },
+  "sampleRate": 48000,
+  "timestamp": "2026-10-15T15:17:59.837Z",
+  "untouchedRightChannelMaxError": 0,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)",
+  "version": "0.2.0",
+  "wasmLoaded": true,
+  "workerAnalysis": true,
+  "platform": "macos-x64",
+  "installedPackage": true,
+  "networkIsolation": "sandbox-exec outbound IP denial"
+}

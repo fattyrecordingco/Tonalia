@@ -1,0 +1,22 @@
+{
+  "usesSeparateInstallationDirectory": true,
+  "actions": [
+    "Next >",
+    "I Agree",
+    "Next >",
+    "Next >"
+  ],
+  "visibleInstaller": true,
+  "installedExecutablePresent": true,
+  "version": "0.2.0",
+  "installedDirectory": "%LOCALAPPDATA%\\Tonalia-0.2.0",
+  "previousSessionObservedWithUnsavedEdits": true,
+  "date": "2026-10-15T15:56:05.8837230Z",
+  "silent": false,
+  "exitCode": 0,
+  "previousSessionTerminatedByAgent": false,
+  "startMenuShortcutVersion": "0.2.0",
+  "desktopShortcutVersion": "0.2.0",
+  "shortcutTargetsUpdatedForSeparateDirectory": true,
+  "installedFileVersion": "0.2.0"
+}

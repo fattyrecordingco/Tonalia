@@ -18,7 +18,7 @@ Installers are published on the [Tonalia 0.2.0 release page](https://github.com/
 
 See [installation, chip selection, offline use and checksum instructions](docs/INSTALL.md). These are development builds: Windows is unsigned and Mac builds are ad-hoc signed without Apple notarization. The Windows setup includes the WebView2 offline installer. Linux prerequisites must be available locally for a fully offline installation.
 
-The 0.1 release passed packaging/installation checks on native GitHub runners. Updated 0.2 reports accompany its release. The published Windows installer was also downloaded, installed and tested through its native Open/Save dialogs with outbound WebView internet blocked. The published Debian package and AppImage ran on Ubuntu 24.04 under WSL2 with no internet interface. See the [distribution verification record](docs/implementation/DISTRIBUTION.md) for evidence and limits.
+All 0.2 native package/install checks passed on GitHub runners. The published Windows setup was downloaded, checksum-verified and installed through its visible wizard; native Open/Save dialogs, CPAL playback, restoration export and two-app co-editing passed with outbound WebView internet blocked. The published Debian package and normal FUSE AppImage also ran without internet interfaces on Ubuntu 24.04/WSL2. Mac packages were installed and tested with outbound IP denied on native GitHub Mac runners. See the [distribution record](docs/implementation/DISTRIBUTION.md) for evidence and remaining qualification.
 
 ## What works
 

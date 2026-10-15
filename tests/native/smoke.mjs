@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 // Test the packaged WebView and real native commands. The source is opened through the supported command-line path. Native export/project commands are exercised directly.
 // No user recordings or browser profiles are touched. Native output is deliberately quiet.
 const temp = await mkdtemp(join(tmpdir(), 'tonalia-native-smoke-'));
-const inputPath = join(temp, 'native-reference.wav');
+const inputPath = join(temp, `native-reference-${Date.now()}.wav`);
 const outputPath = join(temp, 'native-export.wav');
 const projectPath = join(temp, 'native-project.tonalia.json');
 const rate = 48000,
@@ -253,7 +253,11 @@ try {
     await page.getByRole('button', { name: 'Project', exact: true }).evaluate((el) => el.click());
     await page.getByRole('button', { name: /Save project/ }).evaluate((el) => el.click());
     fileDialog(projectPath);
-    await page.getByText(/Project saved\. Keep the original/).waitFor();
+    await page.waitForFunction(
+      () => !document.querySelector('.save-state')?.classList.contains('unsaved'),
+      undefined,
+      { timeout: 30000 },
+    );
   } else
     await page.evaluate(
       ({ projectPath, manifest }) =>
@@ -414,7 +418,11 @@ try {
   };
   await mkdir('docs/implementation', { recursive: true });
   await page.screenshot({ path: reportFile.replace(/\.json$/, '.png') });
+  const appVersion =
+    (await page.locator('.status-bar').innerText()).match(/Tonalia (\d+\.\d+\.\d+)/)?.[1] ||
+    'unknown';
   const report = {
+    appVersion,
     sharedSession: shared,
     restoration,
     date: new Date().toISOString(),
@@ -474,5 +482,7 @@ try {
   if (browser) await browser.close().catch(() => {});
   child.kill();
   await new Promise((r) => setTimeout(r, 300));
-  await rm(temp, { recursive: true, force: true }).catch(() => {});
+  if (process.env.TONALIA_KEEP_TEST_FILES === '1')
+    console.log('Generated diagnostic files retained:', temp);
+  else await rm(temp, { recursive: true, force: true }).catch(() => {});
 }

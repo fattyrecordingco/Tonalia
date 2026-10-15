@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "executable": "%USERPROFILE%\\AppData\\Local\\Tonalia-0.2.0\\tonalia-desktop.exe",
+  "installedPackage": true,
+  "date": "2026-10-15T15:57:16.567Z",
+  "passed": true,
+  "peers": 2,
+  "distinctWebViewProfiles": true,
+  "identicalLocalSource": true,
+  "hostEditReachedGuest": true,
+  "guestBypassReachedHost": true,
+  "sharedUndoDisabled": true,
+  "hostStopObservedByGuest": true,
+  "layersPreservedOnDisconnect": true,
+  "webViewInternetBlocked": true,
+  "scope": "Two native app processes on loopback; cross-machine LAN remains unqualified."
+}
