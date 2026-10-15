@@ -1,3 +1,4 @@
+import { version } from '../../../package.json';
 import { invoke } from '@tauri-apps/api/core';
 import { AudioEngine } from './engine/client';
 import { isNative, type Layer } from './types';
@@ -7,6 +8,7 @@ export async function verifyInstallation() {
   if (!isNative() || !(await invoke<boolean>('installation_check_enabled'))) return;
   const engine = new AudioEngine();
   const report: Record<string, unknown> = {
+    version,
     timestamp: new Date().toISOString(),
     userAgent: navigator.userAgent,
     origin: location.origin,

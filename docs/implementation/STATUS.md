@@ -2,6 +2,8 @@
 
 **0.2.0 development release.** Navigation, initial restoration, offline neural denoising, local recovery and optional LAN sessions are implemented. See [0.2 behavior, algorithms, test coverage and remaining work](RELEASE-0.2.md). No complete roadmap phase or Audition parity is asserted. Installer publication and installed verification are recorded in release reports.
 
+Local pre-release validation: **22 core numerical tests passed** (17 existing + 5 restoration), **3 native tests passed** (LAN protocol and render-cache contracts), **12 browser integration tests passed**. The browser suite covers offline neural rendering and recovery across reload. The Windows native workflow also passed actual CPAL playback, native gate/neural export, exact untouched-channel preservation, source protection, LAN acknowledgment/conflict/source-token checks and an accepted peer edit visible in the UI with external WebView internet blocked. Updated public installer acceptance is recorded separately after publication.
+
 The record below documents the earlier 0.1 baseline; its counts and limits are historical.
 
 ---

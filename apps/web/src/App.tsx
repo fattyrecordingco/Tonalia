@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { version } from '../../../package.json';
 import { invoke } from '@tauri-apps/api/core';
 import {
   Activity,
@@ -1935,7 +1936,7 @@ export default function App() {
           )}
         </span>
         <span>
-          Tonalia 0.1 <span className="status-divider" /> Local development build
+          Tonalia {version} <span className="status-divider" /> Development build
         </span>
       </div>
       {notice && (

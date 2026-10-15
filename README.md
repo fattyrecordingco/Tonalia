@@ -2,7 +2,7 @@
 
 **Nondestructive spectral audio editing, developed by Fatty Recording Co.**
 
-Tonalia 0.1 is a working development release with a shared Rust audio core, a React/TypeScript workspace, desktop packages for Windows/macOS/Linux, and a browser client using the same DSP through WebAssembly. It is the first functional slice of the [master plan](docs/planning/README.md), not a completed Audition replacement.
+Tonalia 0.2 is a working development release with a shared Rust audio core, a React/TypeScript workspace, desktop packages for Windows/macOS/Linux, and a browser client using the same DSP through WebAssembly. It is an incremental implementation of the [master plan](docs/planning/README.md), not a completed Audition replacement.
 
 ## Download the desktop app
 
