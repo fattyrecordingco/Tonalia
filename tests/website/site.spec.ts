@@ -92,6 +92,8 @@ test('screenshots open in an accessible dialog and Escape returns focus', async 
   const dialog = page.getByRole('dialog', { name: 'Screenshot viewer' });
   await expect(dialog).toBeVisible();
   await expect(dialog.locator('img[src]')).toHaveJSProperty('naturalWidth', 1600);
+  await page.setViewportSize({ width: 360, height: 900 });
+  await expect(dialog.getByRole('link', { name: 'Open original image' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   await expect(button).toBeFocused();

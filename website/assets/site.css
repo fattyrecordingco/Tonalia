@@ -1748,3 +1748,23 @@ tbody th kbd {
 .guide-section .setup-screenshot {
   max-width: 560px;
 }
+@media (max-width: 850px) {
+  .image-dialog-toolbar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+  .image-dialog-toolbar > span {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+  .image-dialog-toolbar a {
+    display: inline-block;
+    grid-column: 1;
+    align-self: center;
+  }
+  .image-dialog-toolbar button {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
