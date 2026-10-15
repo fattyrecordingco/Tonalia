@@ -1,0 +1,1342 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#171d29" />
+    <title>Tonalia guide — install, edit and save</title>
+    <meta
+      name="description"
+      content="A plain-language Tonalia guide with real screenshots. Install on Windows, Mac or Linux, select a sound, compare your changes and export a WAV."
+    />
+    <link rel="canonical" href="https://fattyrecordingco.github.io/Tonalia/guide/" />
+    <meta property="og:title" content="Tonalia guide — install, edit and save" />
+    <meta
+      property="og:description"
+      content="A plain-language Tonalia guide with real screenshots. Install on Windows, Mac or Linux, select a sound, compare your changes and export a WAV."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://fattyrecordingco.github.io/Tonalia/guide/" />
+    <meta
+      property="og:image"
+      content="https://fattyrecordingco.github.io/Tonalia/assets/screenshots/workspace.png"
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link
+      rel="preload"
+      href="../assets/fonts/dm-sans.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="../assets/site.css" />
+    <script src="../assets/site.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="../" aria-label="Tonalia home"
+          ><svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
+            <path
+              d="M3 24C9 24 9 9 15 9S21 32 27 32 32 15 38 15"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+            />
+            <path
+              d="M3 29C9 29 10 14 15 14S22 24 27 24 32 8 38 8"
+              stroke="currentColor"
+              stroke-width="1.3"
+              opacity=".45"
+            /></svg
+          ><span>tonalia</span></a
+        >
+        <nav aria-label="Main navigation">
+          <a href="../#download">Downloads</a><a href="../guide/" aria-current="page">Guide</a
+          ><a class="nav-editor" href="../app/">Open editor</a
+          ><a
+            class="github-link"
+            href="https://github.com/fattyrecordingco/Tonalia"
+            aria-label="Tonalia on GitHub"
+            ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path
+                d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.86c-2.78.6-3.37-1.18-3.37-1.18-.45-1.15-1.11-1.45-1.11-1.45-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.64-1.33-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02A9.6 9.6 0 0 1 12 6.85c.85 0 1.71.11 2.51.34 1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.72c0 .27.18.58.69.48A10 10 0 0 0 12 2z"
+              /></svg
+          ></a>
+        </nav>
+      </div>
+    </header>
+    <main id="main" class="guide-layout page-width">
+      <aside class="guide-sidebar">
+        <a class="back-link" href="../">Tonalia home</a>
+        <h2>User guide</h2>
+        <label class="guide-search"
+          >Find a topic<input
+            type="search"
+            id="guide-search"
+            placeholder="Try “export” or “noise”"
+            autocomplete="off"
+            aria-controls="guide-content"
+        /></label>
+        <p data-search-status class="search-status" role="status" aria-live="polite"></p>
+        <nav aria-label="Guide contents">
+          <a href="#install">Install Tonalia</a><a href="#first-edit">Your first edit</a
+          ><a href="#workspace">Find your way around</a><a href="#selections">Select a sound</a
+          ><a href="#layers">Work with layers</a><a href="#restoration">Clean up a recording</a
+          ><a href="#listen">Play and compare</a><a href="#save-export">Save and export</a
+          ><a href="#analysis">Check your recording</a
+          ><a href="#shortcuts">Keys, mouse and trackpad</a
+          ><a href="#sharing">Edit with someone else</a><a href="#offline">Use Tonalia offline</a
+          ><a href="#limits">What to expect</a><a href="#troubleshooting">Fix a problem</a>
+        </nav>
+        <button class="print-guide" data-print>Print / save as PDF</button>
+      </aside>
+      <article class="guide-content" id="guide-content">
+        <header class="guide-title">
+          <p class="guide-byline">Tonalia 0.2.0 · Fatty Recording Co</p>
+          <h1>From first launch<br />to finished audio.</h1>
+          <p>
+            Start here if you’re new to Tonalia. The screenshots use a built-in practice recording,
+            so you can follow along without risking a session.
+          </p>
+          <p class="caption">
+            Click any app screenshot to see a larger version. The app is designed for a computer
+            screen.
+          </p>
+        </header>
+        <section
+          class="guide-section"
+          id="install"
+          data-guide-section
+          data-keywords="download windows mac macos apple intel silicon linux ubuntu debian appimage install setup"
+        >
+          <h2>Install Tonalia</h2>
+          <p>
+            Choose your computer below. Before updating an older version, save your project and
+            close Tonalia.
+          </p>
+          <div class="install-tabs" data-tabs aria-label="Installation instructions">
+            <button id="tab-windows" data-tab="windows">Windows</button
+            ><button id="tab-mac" data-tab="mac">Mac</button
+            ><button id="tab-linux" data-tab="linux">Linux</button>
+          </div>
+          <div class="installation-panel" id="install-windows" data-panel="windows">
+            <h3>Windows 11</h3>
+            <p>
+              These steps are for an Intel or AMD 64-bit computer. Check
+              <strong>Settings → System → About → System type</strong> if you’re unsure. There isn’t
+              a native Windows ARM installer yet.
+            </p>
+            <ol>
+              <li>
+                <a
+                  class="download-button"
+                  href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_windows_x64_setup.exe"
+                  ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path
+                      d="M11 3h2v10l3-3 1.4 1.4L12 17l-5.4-5.6L8 10l3 3zM4 18h2v3h12v-3h2v5H4z"
+                    /></svg
+                  ><span>Download the Windows installer</span></a
+                >
+                <p>It’s the file ending in <strong>setup.exe</strong>. You only need this file.</p>
+              </li>
+              <li>
+                Open the downloaded file. If Windows shows an unknown-publisher message, check that
+                it came from the official Tonalia release linked here. Only continue if you trust
+                that download; work-managed computers may block it.
+              </li>
+              <li>
+                Follow the setup window. Choose <strong>Next</strong>, read the licence and choose
+                <strong>I Agree</strong>, then continue to <strong>Install</strong>. You can keep
+                the suggested folder.
+              </li>
+              <li>
+                Choose <strong>Finish</strong>, then open <strong>Tonalia</strong> from the Start
+                menu or its shortcut.
+              </li>
+            </ol>
+            <figure class="screenshot setup-screenshot">
+              <button
+                class="screenshot-button"
+                data-lightbox
+                aria-label="Enlarge screenshot: the Windows Tonalia setup welcome screen"
+              >
+                <img
+                  src="../assets/screenshots/windows-setup.png"
+                  alt="The real Tonalia Setup welcome screen with a Next button"
+                  width="1000"
+                  height="746"
+                  loading="lazy"
+                /><span class="enlarge-hint">View full size</span>
+              </button>
+              <figcaption>
+                The Windows setup window. Choose Next to start, then follow the steps above.
+              </figcaption>
+            </figure>
+            <p>
+              The installer includes the extra Windows display component Tonalia needs, so you don’t
+              have to find it separately.
+            </p>
+            <details>
+              <summary>Uninstall or check the download</summary>
+              <p>
+                Remove Tonalia through <strong>Settings → Apps → Installed apps</strong>. Your
+                original recordings and saved project files stay in their folders.
+              </p>
+              <p>
+                To check a download, get
+                <a
+                  href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/SHA256SUMS.txt"
+                  >the checksum list</a
+                >
+                and compare the number for your file with this PowerShell command. A matching number
+                means the file matches this release.
+              </p>
+              <div class="command">
+                <pre><code>Get-FileHash .\Tonalia_0.2.0_windows_x64_setup.exe -Algorithm SHA256</code></pre>
+                <button data-copy aria-label="Copy command">Copy</button>
+              </div>
+            </details>
+          </div>
+          <div class="installation-panel" id="install-mac" data-panel="mac">
+            <h3>Mac</h3>
+            <p>
+              Open <strong>Apple menu → About This Mac</strong>. If it lists an Apple M-series
+              <strong>Chip</strong>, choose Apple Silicon. If it lists an Intel
+              <strong>Processor</strong>, choose Intel. You need macOS 13 or later.
+            </p>
+            <div class="inline-downloads">
+              <a
+                class="download-button"
+                href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_macos_apple_silicon.dmg"
+                ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path
+                    d="M11 3h2v10l3-3 1.4 1.4L12 17l-5.4-5.6L8 10l3 3zM4 18h2v3h12v-3h2v5H4z"
+                  /></svg
+                ><span>Download for Apple Silicon</span></a
+              ><a
+                class="download-button"
+                href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_macos_intel.dmg"
+                ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path
+                    d="M11 3h2v10l3-3 1.4 1.4L12 17l-5.4-5.6L8 10l3 3zM4 18h2v3h12v-3h2v5H4z"
+                  /></svg
+                ><span>Download for Intel Mac</span></a
+              >
+            </div>
+            <ol>
+              <li>
+                Open the downloaded <strong>.dmg</strong> file. If a licence agreement appears, read
+                and accept it to open the disk image.
+              </li>
+              <li>
+                Drag <strong>Tonalia</strong> into <strong>Applications</strong> in the window.
+              </li>
+              <li>Eject the disk image, then open <strong>Applications → Tonalia</strong>.</li>
+            </ol>
+            <div class="note">
+              <h4>If macOS won’t open it</h4>
+              <p>
+                This development build hasn’t been checked and notarized by Apple. After trying to
+                open Tonalia, you may be able to allow this specific app in
+                <strong>System Settings → Privacy & Security → Open Anyway</strong>. Only do this
+                for a download you trust. Don’t turn off your Mac’s security protections.
+              </p>
+              <p>
+                <a href="https://support.apple.com/en-gb/102445"
+                  >Apple’s guide explains these messages</a
+                >. A managed Mac may still block the app.
+              </p>
+            </div>
+            <details>
+              <summary>Uninstall or check the download</summary>
+              <p>
+                Delete Tonalia from Applications to uninstall. Keep your recordings and project
+                files. To check the Apple Silicon download against
+                <a
+                  href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/SHA256SUMS.txt"
+                  >the checksum list</a
+                >, use Terminal:
+              </p>
+              <div class="command">
+                <pre><code>shasum -a 256 Tonalia_0.2.0_macos_apple_silicon.dmg</code></pre>
+                <button data-copy aria-label="Copy command">Copy</button>
+              </div>
+              <p>For an Intel Mac, use the Intel filename instead.</p>
+            </details>
+          </div>
+          <div class="installation-panel" id="install-linux" data-panel="linux">
+            <h3>Linux</h3>
+            <p>
+              These downloads are for 64-bit Intel or AMD computers. Running
+              <code>uname -m</code> should show <code>x86_64</code>. There isn’t a Linux ARM package
+              yet.
+            </p>
+            <h4>Ubuntu / Debian</h4>
+            <p>
+              Ubuntu 22.04 or later is the tested build baseline. Other Debian-based systems may
+              need additional setup.
+            </p>
+            <a
+              class="download-button"
+              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_linux_amd64.deb"
+              ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M11 3h2v10l3-3 1.4 1.4L12 17l-5.4-5.6L8 10l3 3zM4 18h2v3h12v-3h2v5H4z"
+                /></svg
+              ><span>Download the Debian package</span></a
+            >
+            <p>Open a terminal in the folder containing the download and run:</p>
+            <div class="command">
+              <pre><code>sudo apt install ./Tonalia_0.2.0_linux_amd64.deb</code></pre>
+              <button data-copy aria-label="Copy command">Copy</button>
+            </div>
+            <p>
+              Enter your password if asked. Then open <strong>Tonalia</strong> from your
+              applications menu. The package manager may need internet to install missing system
+              libraries; Tonalia itself runs offline once installed.
+            </p>
+            <h4>AppImage</h4>
+            <a
+              class="download-button"
+              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_linux_x86_64.AppImage"
+              ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M11 3h2v10l3-3 1.4 1.4L12 17l-5.4-5.6L8 10l3 3zM4 18h2v3h12v-3h2v5H4z"
+                /></svg
+              ><span>Download the AppImage</span></a
+            >
+            <p>In the download folder, make it runnable and open it:</p>
+            <div class="command">
+              <pre><code>chmod +x Tonalia_0.2.0_linux_x86_64.AppImage
+./Tonalia_0.2.0_linux_x86_64.AppImage</code></pre>
+              <button data-copy aria-label="Copy command">Copy</button>
+            </div>
+            <p>If it reports a FUSE error, try:</p>
+            <div class="command">
+              <pre><code>./Tonalia_0.2.0_linux_x86_64.AppImage --appimage-extract-and-run</code></pre>
+              <button data-copy aria-label="Copy command">Copy</button>
+            </div>
+            <p>
+              The AppImage still needs a compatible Linux desktop and audio system. It isn’t
+              guaranteed to work on every distribution.
+            </p>
+            <details>
+              <summary>Uninstall or check the download</summary>
+              <p>
+                Remove the Debian package with <code>sudo apt remove tonalia</code>, or delete the
+                AppImage. Check the Debian package against
+                <a
+                  href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/SHA256SUMS.txt"
+                  >the checksum list</a
+                >
+                with:
+              </p>
+              <div class="command">
+                <pre><code>sha256sum Tonalia_0.2.0_linux_amd64.deb</code></pre>
+                <button data-copy aria-label="Copy command">Copy</button>
+              </div>
+            </details>
+          </div>
+          <p>
+            When the app opens, it looks like the workspace below. All editing steps in this guide
+            apply to both desktop and browser unless a step says otherwise.
+          </p>
+        </section>
+        <section
+          class="guide-section"
+          id="first-edit"
+          data-guide-section
+          data-keywords="practice tutorial first edit whistle gain volume quieter open wav calibration"
+        >
+          <h2>Make your first edit</h2>
+          <p>
+            This quick exercise turns down a whistle in a practice recording. It takes a few
+            minutes.
+          </p>
+          <ol class="task-steps">
+            <li>
+              <h3>Open the practice recording.</h3>
+              <p>
+                In a new Tonalia window, choose <strong>Explore a calibration session</strong>. If a
+                recording is already open, use <strong>Project → Calibration session</strong>. Save
+                any edits you want to keep before changing recordings.
+              </p>
+              <p>
+                “Calibration session” is the app’s name for its generated practice sound. To use
+                your own recording instead, choose <strong>Open WAV</strong>. This version opens WAV
+                files, not MP3s.
+              </p>
+              <figure class="screenshot">
+                <button
+                  class="screenshot-button"
+                  data-lightbox
+                  aria-label="Enlarge screenshot: The Tonalia practice recording in the main workspace"
+                >
+                  <img
+                    src="../assets/screenshots/workspace.png"
+                    alt="The Tonalia practice recording in the main workspace"
+                    width="1600"
+                    height="1000"
+                    loading="lazy"
+                  /><span class="enlarge-hint">View full size</span>
+                </button>
+                <figcaption>
+                  The picture of the sound sits in the middle, edits live on the left, and controls
+                  sit on the right.
+                </figcaption>
+              </figure>
+            </li>
+            <li>
+              <h3>Select the whistle.</h3>
+              <p>
+                Choose <strong>Frequency rectangle</strong> in the top toolbar. In the
+                <strong>Edit</strong> panel, set <strong>Start</strong> to
+                <strong>6.000 s</strong> and <strong>End</strong> to <strong>7.000 s</strong>. Set
+                <strong>Low frequency</strong> to <strong>2500 Hz</strong> and
+                <strong>High frequency</strong> to <strong>4000 Hz</strong>. Press Enter after each
+                value.
+              </p>
+              <p>
+                These values describe the high whistle in the practice sound. The correct values for
+                another recording will be different.
+              </p>
+              <figure class="screenshot">
+                <button
+                  class="screenshot-button"
+                  data-lightbox
+                  aria-label="Enlarge screenshot: A selection covering seconds six to seven and the high whistle"
+                >
+                  <img
+                    src="../assets/screenshots/selection.png"
+                    alt="A selection covering seconds six to seven and the high whistle"
+                    width="1600"
+                    height="1000"
+                    loading="lazy"
+                  /><span class="enlarge-hint">View full size</span>
+                </button>
+                <figcaption>
+                  The outlined area is the part you’ll change. The numbers on the right match it.
+                </figcaption>
+              </figure>
+            </li>
+            <li>
+              <h3>Turn it down.</h3>
+              <p>
+                Keep the starting <strong>−18 dB</strong> setting, or choose
+                <strong>−6 dB</strong> for a smaller change. Negative numbers make the selected
+                sound quieter. Give the change a useful <strong>Layer name</strong>, then choose
+                <strong>Create gain layer</strong>.
+              </p>
+              <p>
+                A layer is a saved change to the recording. “Gain” here simply means making it
+                louder or quieter.
+              </p>
+              <figure class="screenshot">
+                <button
+                  class="screenshot-button"
+                  data-lightbox
+                  aria-label="Enlarge screenshot: An edit named Turn down the whistle in the layers list"
+                >
+                  <img
+                    src="../assets/screenshots/layers.png"
+                    alt="An edit named Turn down the whistle in the layers list"
+                    width="1600"
+                    height="1000"
+                    loading="lazy"
+                  /><span class="enlarge-hint">View full size</span>
+                </button>
+                <figcaption>
+                  The new change appears in the left panel. Its eye button lets you switch it off
+                  and compare.
+                </figcaption>
+              </figure>
+            </li>
+            <li>
+              <h3>Listen and compare.</h3>
+              <p>
+                Click near the start of the changed area on the time ruler, then press
+                <strong>Space</strong> to play. Compare <strong>Original</strong> and
+                <strong>Result</strong> at the bottom. Try <strong>Removed</strong> to hear what the
+                edit is taking away. Switching a layer or changing playback mode may stop playback;
+                press Space again.
+              </p>
+            </li>
+            <li>
+              <h3>Keep your work.</h3>
+              <p>
+                Use <strong>Project → Save project</strong> to keep the change editable. Choose
+                <strong>Export audio</strong> to make a new WAV. The
+                <a href="#save-export">saving section</a> explains why you may want both.
+              </p>
+            </li>
+          </ol>
+        </section>
+        <section
+          class="guide-section"
+          id="workspace"
+          data-guide-section
+          data-keywords="workspace spectrogram frequency colour color waveform channel pitch time"
+        >
+          <h2>Find your way around</h2>
+          <p>
+            The coloured picture is called a <strong>spectrogram</strong>: it shows which sounds
+            happen at each moment. You don’t need to understand the maths to use it.
+          </p>
+          <dl class="explain-list">
+            <div>
+              <dt>Across the picture: time</dt>
+              <dd>Left is earlier. Right is later. The ruler shows minutes and seconds.</dd>
+            </div>
+            <div>
+              <dt>Up the picture: pitch</dt>
+              <dd>
+                Deep sounds sit lower; bright, high sounds sit higher. Hz measures how quickly a
+                sound vibrates. Higher numbers mean higher frequencies.
+              </dd>
+            </div>
+            <div>
+              <dt>Brighter colour: stronger sound</dt>
+              <dd>
+                Dim purple areas are quieter. Brighter orange and pale areas are stronger. Changing
+                the display brightness only changes the picture.
+              </dd>
+            </div>
+            <div>
+              <dt>Left: your changes</dt>
+              <dd>
+                The source is your original recording. Each layer beneath it is a separate,
+                reversible change.
+              </dd>
+            </div>
+            <div>
+              <dt>Right: the controls</dt>
+              <dd>
+                Edit sets a selection and volume change. Restore offers clean-up tools. Analyze
+                shows measurements. Share is for desktop local-network sessions.
+              </dd>
+            </div>
+            <div>
+              <dt>Bottom: listening</dt>
+              <dd>
+                Play, stop, move back, repeat a selected time range, compare versions and set your
+                listening level.
+              </dd>
+            </div>
+          </dl>
+          <p>
+            Stereo recordings have a separate left and right display. The
+            <strong>Channels</strong> control lets you affect both or just one.
+          </p>
+        </section>
+        <section
+          class="guide-section"
+          id="selections"
+          data-guide-section
+          data-keywords="rectangle time lasso brush selection feather opacity channels clear"
+        >
+          <h2>Select the part you want to change</h2>
+          <div class="table-scroll">
+            <table>
+              <caption>
+                Selection tools
+              </caption>
+              <thead>
+                <tr>
+                  <th>Tool</th>
+                  <th>When to use it</th>
+                  <th>How</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th>Time selection <kbd>T</kbd></th>
+                  <td>A whole moment, across all pitches.</td>
+                  <td>Drag from its start to its end.</td>
+                </tr>
+                <tr>
+                  <th>Frequency rectangle <kbd>M</kbd></th>
+                  <td>A steady whistle, tone or small block of sound.</td>
+                  <td>Drag around its time and pitch range.</td>
+                </tr>
+                <tr>
+                  <th>Lasso <kbd>L</kbd></th>
+                  <td>A sound with an uneven outline.</td>
+                  <td>Draw around it and release to close the outline.</td>
+                </tr>
+                <tr>
+                  <th>Spectral brush <kbd>B</kbd></th>
+                  <td>A narrow trail or a few scattered spots.</td>
+                  <td>Paint over the sound. Adjust brush size and opacity in the toolbar.</td>
+                </tr>
+                <tr>
+                  <th>Pan canvas <kbd>H</kbd></th>
+                  <td>Moving around without drawing a selection.</td>
+                  <td>Drag the view. You can also drag with the middle mouse button.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Use the <strong>Start</strong>, <strong>End</strong>, <strong>Low frequency</strong> and
+            <strong>High frequency</strong> fields for an exact rectangle. Editing those bounds
+            turns the selection into a rectangle.
+          </p>
+          <p>
+            <strong>Time feather</strong> and <strong>Frequency feather</strong> soften the edges of
+            an edit. Larger values make a more gradual transition. Brush strokes have their own soft
+            edges. A change can reach slightly beyond the drawn edge because sound analysis uses
+            short overlapping slices.
+          </p>
+          <p>
+            Press <strong>Escape</strong> to clear the selection. Use <strong>Channels</strong> to
+            choose both sides of a stereo recording or one side only.
+          </p>
+        </section>
+        <section
+          class="guide-section"
+          id="layers"
+          data-guide-section
+          data-keywords="layers reorder undo redo rename delete bypass reversible"
+        >
+          <h2>Work with layers</h2>
+          <p>
+            A layer keeps one change separate from the original. A useful name, such as “Whistle at
+            6 seconds”, is easier to find later than “Edit 3”.
+          </p>
+          <ul>
+            <li>
+              <strong>Switch an edit off:</strong> click its eye button. Click again to switch it
+              on.
+            </li>
+            <li>
+              <strong>Change a volume edit:</strong> click its layer, adjust the setting in Edit,
+              then choose <strong>Update layer</strong>.
+            </li>
+            <li>
+              <strong>Add another change to the same area:</strong> choose
+              <strong>Use selection for a new layer</strong> before creating the next volume edit.
+            </li>
+            <li>
+              <strong>Change the order:</strong> use the up/down buttons beside a layer. The order
+              matters when one change affects what a later change receives.
+            </li>
+            <li>
+              <strong>Remove an edit:</strong> use its bin button. The source recording stays
+              untouched.
+            </li>
+            <li>
+              <strong>Undo or redo:</strong> use the top-right arrows, or the keyboard shortcuts
+              below.
+            </li>
+          </ul>
+          <p>
+            Clean-up layers are separate too, but their settings can’t yet be edited in place.
+            Delete and recreate a clean-up layer to change its settings.
+          </p>
+          <p>
+            Save a project file regularly. Tonalia keeps recent recovery checkpoints too, but they
+            don’t replace a backup.
+          </p>
+        </section>
+        <section
+          class="guide-section"
+          id="restoration"
+          data-guide-section
+          data-keywords="restore restoration noise noise reduction gate threshold hum click interpolation ai neural speech denoise 48khz"
+        >
+          <h2>Clean up a recording</h2>
+          <p>
+            Select the affected part, open <strong>Restore</strong>, choose an operation and set its
+            controls. Choose <strong>Create restoration layer</strong>, then listen to
+            <strong>Result</strong> and <strong>Removed</strong>. Start gently: unwanted sound can
+            overlap the sound you want to keep.
+          </p>
+          <figure class="screenshot">
+            <button
+              class="screenshot-button"
+              data-lightbox
+              aria-label="Enlarge screenshot: The Restore panel with offline neural speech denoise selected"
+            >
+              <img
+                src="../assets/screenshots/restore.png"
+                alt="The Restore panel with offline neural speech denoise selected"
+                width="1600"
+                height="1000"
+                loading="lazy"
+              /><span class="enlarge-hint">View full size</span>
+            </button>
+            <figcaption>
+              Every clean-up operation creates a new layer you can switch off or remove.
+            </figcaption>
+          </figure>
+          <div class="tool-notes">
+            <h3>Spectral gate: reduce quiet background sound</h3>
+            <p>
+              Choose <strong>Spectral gate</strong>. <strong>Gate threshold</strong> sets the level
+              below which sounds are reduced. <strong>Maximum reduction</strong> limits how much
+              quieter they become. A lower reduction is gentler. It can also affect quiet parts of
+              speech or music, so compare often.
+            </p>
+            <h3>Harmonic hum attenuation: reduce a steady electrical buzz</h3>
+            <p>
+              Choose this for a low, repeating hum. Try a <strong>Hum fundamental</strong> of
+              <strong>50 Hz</strong> or <strong>60 Hz</strong>, depending on the recording. It also
+              reduces related higher tones. Set a small maximum reduction first. This early tool has
+              fairly broad frequency bands and may affect nearby musical notes.
+            </p>
+            <h3>Short-click interpolation: fill a tiny damaged moment</h3>
+            <p>
+              Select a click no longer than <strong>0.010 seconds</strong> (10 milliseconds), with
+              intact audio on both sides. This tool draws a short connection between the
+              neighbouring samples. It uses the whole pitch range in the selected time, not just the
+              frequencies you outlined. It isn’t a general-purpose repair brush.
+            </p>
+            <h3>Offline neural speech denoise: reduce noise around speech</h3>
+            <p>
+              This is an experimental, included speech clean-up model. It runs locally and doesn’t
+              download a model or send your recording away. Your file must be
+              <strong>48 kHz</strong>; look at the source information on the left to check.
+              <strong>Neural strength</strong> runs from 0 (no change) to 1 (full effect).
+            </p>
+            <p>
+              It uses the whole pitch range for the selected time and can affect desired speech or
+              music. This version supports one neural speech layer per project. It processes stereo
+              channels separately. Listen before keeping the result.
+            </p>
+          </div>
+        </section>
+        <section
+          class="guide-section"
+          id="listen"
+          data-guide-section
+          data-keywords="play playback pause stop loop repeat original result removed audition headphones volume"
+        >
+          <h2>Play and compare</h2>
+          <p>
+            Press <strong>Space</strong> or the play button to listen. Press Space again to stop.
+            Click the time ruler to move the playhead; the playhead shows where playback will start.
+          </p>
+          <dl class="explain-list">
+            <div>
+              <dt>Original</dt>
+              <dd>Your recording before the layers.</dd>
+            </div>
+            <div>
+              <dt>Result</dt>
+              <dd>Your recording with enabled layers applied.</dd>
+            </div>
+            <div>
+              <dt>Removed</dt>
+              <dd>
+                The difference between them. If you hear important speech or music here, the edit
+                may be taking away too much.
+              </dd>
+            </div>
+          </dl>
+          <p>
+            Select a time range and turn on the repeat button to loop it. Keep your listening level
+            comfortable. The volume slider at the bottom changes what you hear; it does
+            <strong>not</strong> change the exported file.
+          </p>
+          <p>
+            Changing layers stops playback so you can hear a consistent version when you start
+            again. Clean-up can take a moment to prepare on slower computers.
+          </p>
+        </section>
+        <section
+          class="guide-section"
+          id="save-export"
+          data-guide-section
+          data-keywords="save project export wav precision 32 64 float reopen relink original json history recover recovery backup"
+        >
+          <h2>Save a project. Export a WAV.</h2>
+          <p>
+            These do different jobs. Keep both if you want a finished audio file and a way to revise
+            your work.
+          </p>
+          <div class="save-compare">
+            <div>
+              <h3>Save project</h3>
+              <p>
+                Keeps your layers, selections used by those layers, and view. It does
+                <strong>not</strong> contain the audio.
+              </p>
+              <p>
+                Choose <strong>Project → Save project</strong>, or press
+                <strong>Ctrl/Cmd + S</strong>. Keep the <strong>.tonalia.json</strong> file and the
+                unchanged original WAV together.
+              </p>
+            </div>
+            <div>
+              <h3>Export audio</h3>
+              <p>
+                Makes a new WAV with your enabled edits applied. Use this file for listening
+                elsewhere or sharing.
+              </p>
+              <p>
+                Choose <strong>Export audio</strong>, pick a range and precision, then choose
+                <strong>Export WAV</strong>. Use a new filename.
+              </p>
+            </div>
+          </div>
+          <figure class="screenshot">
+            <button
+              class="screenshot-button"
+              data-lightbox
+              aria-label="Enlarge screenshot: Export audio dialog showing range and WAV precision choices"
+            >
+              <img
+                src="../assets/screenshots/export.png"
+                alt="Export audio dialog showing range and WAV precision choices"
+                width="1600"
+                height="1000"
+                loading="lazy"
+              /><span class="enlarge-hint">View full size</span>
+            </button>
+            <figcaption>
+              Whole source exports the recording. Selection time range exports that time across the
+              full pitch range.
+            </figcaption>
+          </figure>
+          <h3>Which export setting?</h3>
+          <p>
+            <strong>32-bit float WAV</strong> is a sensible starting point if the next app supports
+            it. <strong>64-bit float WAV</strong> keeps more numerical precision and makes a larger
+            file. This version doesn’t export 16-bit WAV or MP3; check what the next app accepts.
+            Tonalia keeps the original sample rate and number of channels.
+          </p>
+          <p>
+            The display settings and listening-volume slider are left out of the export. Very loud
+            edits can exceed a normal playback system’s range even though a float file can store
+            them. Listen and check levels before delivering a file.
+          </p>
+          <h3>Open a saved project</h3>
+          <ol>
+            <li>Choose <strong>Project → Open project</strong>.</li>
+            <li>Select the <strong>.tonalia.json</strong> file.</li>
+            <li>
+              If asked, select its unchanged original WAV. Tonalia checks that it is exactly the
+              same recording before loading the edits.
+            </li>
+          </ol>
+          <p>
+            Exporting a finished WAV doesn’t replace saving a project. A finished WAV won’t bring
+            your editable layers back.
+          </p>
+          <h3>Recover recent work</h3>
+          <p>
+            Open <strong>History</strong>, find a checkpoint and choose <strong>Restore</strong>.
+            You may need to select the original WAV again. Tonalia keeps up to 20 recent local
+            checkpoints after you pause editing for about 1.5 seconds.
+          </p>
+          <figure class="screenshot">
+            <button
+              class="screenshot-button"
+              data-lightbox
+              aria-label="Enlarge screenshot: Local recovery history with saved layer checkpoints and Restore buttons"
+            >
+              <img
+                src="../assets/screenshots/history.png"
+                alt="Local recovery history with saved layer checkpoints and Restore buttons"
+                width="1600"
+                height="1000"
+                loading="lazy"
+              /><span class="enlarge-hint">View full size</span>
+            </button>
+            <figcaption>
+              History belongs to this app or browser profile. Clearing its data can remove these
+              checkpoints.
+            </figcaption>
+          </figure>
+          <p>
+            History doesn’t copy your audio. A crash before the next checkpoint, a storage problem
+            or clearing app data can lose the latest work. Keep explicit project backups.
+          </p>
+        </section>
+        <section
+          class="guide-section"
+          id="analysis"
+          data-guide-section
+          data-keywords="analyze analysis spectrum levels peak rms dc correlation phase frequency fft"
+        >
+          <h2>Check your recording</h2>
+          <p>
+            Open <strong>Analyze</strong> to inspect the sound and the original file’s levels.
+            Moving around the recording changes the frequency view.
+          </p>
+          <figure class="screenshot">
+            <button
+              class="screenshot-button"
+              data-lightbox
+              aria-label="Enlarge screenshot: Analyze panel with a frequency plot and separate left and right source measurements"
+            >
+              <img
+                src="../assets/screenshots/analyze.png"
+                alt="Analyze panel with a frequency plot and separate left and right source measurements"
+                width="1600"
+                height="1000"
+                loading="lazy"
+              /><span class="enlarge-hint">View full size</span>
+            </button>
+            <figcaption>
+              Measurements labelled Source describe the original recording, not a final export.
+            </figcaption>
+          </figure>
+          <dl class="explain-list">
+            <div>
+              <dt>Sample peak</dt>
+              <dd>
+                The largest stored sample level. Near 0 dBFS means near the usual full-scale
+                playback level. This isn’t a true-peak meter.
+              </dd>
+            </div>
+            <div>
+              <dt>RMS</dt>
+              <dd>A rough average signal level. It isn’t a broadcast loudness reading.</dd>
+            </div>
+            <div>
+              <dt>DC</dt>
+              <dd>A measure of whether the waveform sits off centre.</dd>
+            </div>
+            <div>
+              <dt>Correlation</dt>
+              <dd>
+                How similar the two stereo channels are. Near +1 means very similar; near −1 means
+                they strongly oppose each other. It isn’t a complete phase-analysis tool.
+              </dd>
+            </div>
+          </dl>
+          <p>
+            <strong>Analysis FFT</strong> changes the detail of the picture. Larger values separate
+            close frequencies more clearly but blur fast changes in time. Changing this setting, the
+            frequency scale or display brightness doesn’t change the audio edit.
+          </p>
+        </section>
+        <section
+          class="guide-section"
+          id="shortcuts"
+          data-guide-section
+          data-keywords="keyboard shortcuts zoom mouse trackpad scroll pinch command ctrl pan"
+        >
+          <h2>Keys, mouse and trackpad</h2>
+          <p>
+            Scroll over the sound picture to zoom around the pointer. Pinch on a trackpad to zoom
+            too. Hold <strong>Shift</strong> while scrolling to move through time; a horizontal
+            trackpad scroll does the same. Hold <strong>Alt</strong> while scrolling to zoom the
+            frequency range.
+          </p>
+          <p>
+            On a Mac use <strong>Command (⌘)</strong> where Windows and Linux use
+            <strong>Ctrl</strong>. Shortcuts leave text fields alone while you’re typing.
+          </p>
+          <figure class="screenshot">
+            <button
+              class="screenshot-button"
+              data-lightbox
+              aria-label="Enlarge screenshot: the keyboard shortcuts guide inside Tonalia"
+            >
+              <img
+                src="../assets/screenshots/shortcuts.png"
+                alt="Tonalia’s keyboard and navigation guide, opened from the Shortcuts button"
+                width="1600"
+                height="1000"
+                loading="lazy"
+              /><span class="enlarge-hint">View full size</span>
+            </button>
+            <figcaption>
+              Press ? or choose Shortcuts to see the same commands while you work.
+            </figcaption>
+          </figure>
+          <div class="table-scroll">
+            <table>
+              <caption>
+                Keyboard shortcuts
+              </caption>
+              <thead>
+                <tr>
+                  <th>Keys</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th><kbd>Space</kbd></th>
+                  <td>Play / stop</td>
+                </tr>
+                <tr>
+                  <th><kbd>T / M / L / B / H</kbd></th>
+                  <td>Time / rectangle / lasso / brush / hand</td>
+                </tr>
+                <tr>
+                  <th><kbd>+ / −</kbd></th>
+                  <td>Zoom time in / out</td>
+                </tr>
+                <tr>
+                  <th><kbd>0 or Shift + 1</kbd></th>
+                  <td>Fit the whole recording</td>
+                </tr>
+                <tr>
+                  <th><kbd>Shift + 2</kbd></th>
+                  <td>Fit the selection</td>
+                </tr>
+                <tr>
+                  <th><kbd>Left / right arrow</kbd></th>
+                  <td>Pan through time</td>
+                </tr>
+                <tr>
+                  <th><kbd>Home / End</kbd></th>
+                  <td>Move to the start / end</td>
+                </tr>
+                <tr>
+                  <th><kbd>[ / ]</kbd></th>
+                  <td>Smaller / larger brush</td>
+                </tr>
+                <tr>
+                  <th><kbd>Ctrl/Cmd + O</kbd></th>
+                  <td>Open a WAV</td>
+                </tr>
+                <tr>
+                  <th><kbd>Ctrl/Cmd + S</kbd></th>
+                  <td>Save a project</td>
+                </tr>
+                <tr>
+                  <th><kbd>Ctrl/Cmd + E</kbd></th>
+                  <td>Export audio</td>
+                </tr>
+                <tr>
+                  <th><kbd>Ctrl/Cmd + A</kbd></th>
+                  <td>Select the whole recording</td>
+                </tr>
+                <tr>
+                  <th><kbd>Ctrl/Cmd + Enter</kbd></th>
+                  <td>Create or update a volume layer</td>
+                </tr>
+                <tr>
+                  <th><kbd>Ctrl/Cmd + Z</kbd></th>
+                  <td>Undo</td>
+                </tr>
+                <tr>
+                  <th><kbd>Ctrl/Cmd + Shift + Z</kbd></th>
+                  <td>Redo</td>
+                </tr>
+                <tr>
+                  <th><kbd>Delete / Backspace</kbd></th>
+                  <td>Delete the selected layer</td>
+                </tr>
+                <tr>
+                  <th><kbd>Escape</kbd></th>
+                  <td>Clear a selection or close a dialog</td>
+                </tr>
+                <tr>
+                  <th><kbd>?</kbd></th>
+                  <td>Show the app’s shortcut guide</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Ctrl + Y is another redo shortcut. You can open this list inside the app with the
+            <strong>Shortcuts</strong> button.
+          </p>
+        </section>
+        <section
+          class="guide-section"
+          id="sharing"
+          data-guide-section
+          data-keywords="share collaboration collaborate lan network host join invite conflict session"
+        >
+          <h2>Edit with someone on the same network</h2>
+          <p>
+            This experimental feature is in the <strong>installed desktop app</strong>. It shares
+            edits between computers on a trusted local network. It isn’t an internet meeting room,
+            and it doesn’t send audio files.
+          </p>
+          <h3>Host a session</h3>
+          <ol>
+            <li>
+              Each person opens an identical copy of the original WAV. Save any existing project
+              first.
+            </li>
+            <li>
+              The host opens <strong>Share</strong>, enables
+              <strong>Allow private LAN connections</strong> for other computers, and chooses
+              <strong>Host session</strong>. Leaving that box off allows connections only on the
+              same computer.
+            </li>
+            <li>
+              Enter the host computer’s private network address in <strong>Host LAN IP</strong>. It
+              is the address listed in that computer’s network settings, often beginning with
+              192.168 or 10. Don’t use an internet/public address.
+            </li>
+            <li>
+              Copy the full text in <strong>Session invite</strong> and send it privately to the
+              other person.
+            </li>
+          </ol>
+          <h3>Join a session</h3>
+          <ol>
+            <li>Open the identical WAV in the desktop app and wait for its check to finish.</li>
+            <li>
+              Open <strong>Share</strong>, paste the invite and choose
+              <strong>Join session</strong>.
+            </li>
+            <li>
+              Read the replacement prompt: joining loads the host’s layers in place of your current
+              layers. Save anything you need first.
+            </li>
+          </ol>
+          <p>
+            Edits update after the host accepts them. If two people change the same revision at
+            once, Tonalia keeps the accepted change and offers the rejected proposal as a download
+            for manual recovery. In 0.2, rename that downloaded <strong>.tonalia</strong> file to
+            <strong>.tonalia.json</strong> before using Open project.
+          </p>
+          <p>
+            Undo and redo are disabled while sharing. A remote change stops playback. Leaving keeps
+            the latest layers on your computer; the host’s leave button also closes the session.
+          </p>
+          <div class="note">
+            <p>
+              Use this only on a trusted local network: session traffic is not encrypted. Keep the
+              invite private, don’t open router ports, and allow local firewall access only if you
+              intend to host. Cross-computer and network setups may need further testing.
+            </p>
+          </div>
+        </section>
+        <section
+          class="guide-section"
+          id="offline"
+          data-guide-section
+          data-keywords="offline internet privacy local download cloud account activation"
+        >
+          <h2>Use Tonalia offline</h2>
+          <p>
+            The installed app works without an internet connection. There’s no account, activation
+            step or separate speech-model download. Download the installer first and finish
+            installing any needed system components.
+          </p>
+          <ol>
+            <li>
+              Keep your WAV and project files on the computer. Files stored only in a cloud service
+              must be downloaded or marked available offline first.
+            </li>
+            <li>Disconnect Wi-Fi or the network.</li>
+            <li>Open Tonalia, edit, save a project and export a new WAV as usual.</li>
+          </ol>
+          <p>
+            The browser editor needs a connection to load its files. Audio processing still happens
+            locally, but use the installed app when you need reliable offline access. The website
+            doesn’t ask you to upload a recording.
+          </p>
+        </section>
+        <section
+          class="guide-section"
+          id="limits"
+          data-guide-section
+          data-keywords="limits supported formats mp3 aac rf64 wav multitrack recording plugins asio devices channels browser"
+        >
+          <h2>What to expect from 0.2</h2>
+          <p>
+            This is a working development release. Keep original files and test an edit before using
+            it for a finished job.
+          </p>
+          <ul>
+            <li>
+              <strong>Files:</strong> mono or stereo WAV/RF64, 8–192 kHz. MP3, AAC and other
+              compressed formats need conversion elsewhere. More than two channels aren’t supported.
+            </li>
+            <li>
+              <strong>Exports:</strong> new 32-bit or 64-bit float WAV files, at the original rate
+              and channel count.
+            </li>
+            <li>
+              <strong>Clean-up:</strong> initial gate, hum, short-click and speech tools. Advanced
+              healing, declipping, captured noise profiles and automatic room-echo removal aren’t
+              implemented.
+            </li>
+            <li>
+              <strong>Workflow:</strong> one recording per project, up to 64 layers. There’s no
+              multitrack timeline, audio recording or plug-in hosting.
+            </li>
+            <li>
+              <strong>Playback:</strong> uses the default audio output. There’s no in-app device
+              chooser or ASIO support yet.
+            </li>
+            <li>
+              <strong>Sharing:</strong> experimental trusted-local-network sessions, not hosted
+              internet collaboration.
+            </li>
+            <li>
+              <strong>Browser:</strong> use a recent desktop browser. If it can’t stream an export
+              directly to disk, exports are limited to 256 MiB; install the desktop app for larger
+              work.
+            </li>
+          </ul>
+          <p>
+            <a
+              href="https://github.com/fattyrecordingco/Tonalia/blob/main/docs/implementation/RELEASE-0.2.md"
+              >Read the full current feature record</a
+            >. Tonalia does not claim complete Adobe Audition feature parity.
+          </p>
+        </section>
+        <section
+          class="guide-section"
+          id="troubleshooting"
+          data-guide-section
+          data-keywords="help troubleshooting problem error no sound won’t open export failed slow"
+        >
+          <h2>If something isn’t working</h2>
+          <details>
+            <summary>The app won’t open.</summary>
+            <p>
+              Check that the installer matches your computer and chip. See the Windows or Mac
+              installation steps above for publisher prompts. On Linux, check the required system
+              libraries and AppImage instructions. Download a fresh copy if the file may be damaged.
+            </p>
+          </details>
+          <details>
+            <summary>My recording won’t open.</summary>
+            <p>
+              This version opens WAV/RF64 files, not MP3 or AAC. A filename ending in .wav doesn’t
+              guarantee the file is a supported WAV. Use mono or stereo audio and check that the
+              file is fully downloaded.
+            </p>
+          </details>
+          <details>
+            <summary>I can’t hear anything.</summary>
+            <p>
+              Check your system’s default audio output, headphones and volume, then the listening
+              slider in Tonalia. Click the time ruler before the end of the recording and press
+              Space. Try Original to check whether an edit is making the selection too quiet. In a
+              browser, click Play yourself to allow audio.
+            </p>
+          </details>
+          <details>
+            <summary>The picture changed, but the sound didn’t.</summary>
+            <p>
+              A selection alone doesn’t change audio. Create a gain or restoration layer, make sure
+              its eye button is on, and listen in Result mode. Display brightness, frequency scale
+              and analysis detail don’t change the audio.
+            </p>
+          </details>
+          <details>
+            <summary>Speech denoise is unavailable.</summary>
+            <p>
+              The included speech tool requires a 48 kHz file and supports one neural speech layer
+              per project. It uses a time selection across all frequencies. Check the source
+              information and any error shown in the app.
+            </p>
+          </details>
+          <details>
+            <summary>I hear clicks or unwanted changes.</summary>
+            <p>
+              Reduce the amount of processing and soften the selection edges where the tool supports
+              it. Compare Original, Result and Removed. A short-click repair needs intact samples on
+              both sides and a selection no longer than 10 ms.
+            </p>
+          </details>
+          <details>
+            <summary>My project asks for the original WAV.</summary>
+            <p>
+              A project stores edits, not audio. Select the unchanged original recording, not an
+              exported result or a converted copy. If the recording was changed elsewhere, restore
+              the original from your backup.
+            </p>
+          </details>
+          <details>
+            <summary>I can’t find my recovery history.</summary>
+            <p>
+              History is local to the app or browser profile. Clearing data, using another browser
+              or switching profiles won’t carry it across. Open an explicitly saved project and its
+              original WAV instead.
+            </p>
+          </details>
+          <details>
+            <summary>The app is slow or playback breaks up.</summary>
+            <p>
+              Stop playback while changing layers. Switch off layers you don’t need, reduce the
+              analysis detail, or install the desktop app. Speech clean-up can need more preparation
+              time. Close other busy audio apps and try a shorter selection.
+            </p>
+          </details>
+          <details>
+            <summary>Export failed or the next app can’t read it.</summary>
+            <p>
+              Choose a new filename in a writable local folder and make sure there is enough disk
+              space. This version exports float WAV, not MP3 or 16-bit WAV. If the receiving app
+              needs another format, convert the exported file there. In the browser, try a shorter
+              range or the desktop app.
+            </p>
+          </details>
+          <details>
+            <summary>A shared session won’t connect.</summary>
+            <p>
+              Both computers need the desktop app, the identical WAV and a trusted local network.
+              Check the host’s private IP, that LAN access was enabled before hosting, and the local
+              firewall. Keep the host app open. Don’t use router port forwarding.
+            </p>
+          </details>
+          <p>
+            Still stuck?
+            <a href="https://github.com/fattyrecordingco/Tonalia/issues"
+              >Report a problem on GitHub</a
+            >. Include your operating system, the Tonalia version, what you clicked and the error
+            message. You don’t need to post a private recording.
+          </p>
+        </section>
+        <p class="guide-ending">
+          Ready to try it? <a href="../app/">Open the browser editor</a> or
+          <a href="../#download">download the desktop app</a>.
+        </p>
+        <p class="search-empty" hidden>
+          No matching topic. Try “save”, “noise”, “Windows” or “playback”.
+        </p>
+      </article>
+    </main>
+    <footer class="site-footer">
+      <div>
+        <a class="brand" href="../"
+          ><svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
+            <path
+              d="M3 24C9 24 9 9 15 9S21 32 27 32 32 15 38 15"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+            />
+            <path
+              d="M3 29C9 29 10 14 15 14S22 24 27 24 32 8 38 8"
+              stroke="currentColor"
+              stroke-width="1.3"
+              opacity=".45"
+            /></svg
+          ><span>tonalia</span></a
+        >
+        <p>Made by Fatty Recording Co.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="../guide/">User guide</a
+        ><a href="https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.2.0">Release notes</a
+        ><a href="https://github.com/fattyrecordingco/Tonalia/issues">Report a problem</a
+        ><a href="../app/licenses/THIRD-PARTY.txt">Licences</a
+        ><a href="https://github.com/fattyrecordingco/Tonalia">Source code</a>
+      </nav>
+      <p class="footer-note">
+        Version 0.2.0 is a development release. Check a copy of an important recording before using
+        it for a finished job.
+      </p>
+    </footer>
+    <dialog class="image-dialog" aria-label="Screenshot viewer">
+      <div class="image-dialog-toolbar">
+        <span data-image-title></span
+        ><a data-image-original target="_blank" rel="noopener">Open original image</a
+        ><button data-image-close aria-label="Close screenshot">
+          Close <span aria-hidden="true">×</span>
+        </button>
+      </div>
+      <img data-image-large alt="" />
+    </dialog>
+    <div class="copy-status sr-only" role="status" aria-live="polite"></div>
+  </body>
+</html>

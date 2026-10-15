@@ -65,7 +65,7 @@ async function exportWav(page: Page, bits = '64') {
 test('opens an honest empty workspace and real calibration analysis', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByRole('heading', { name: /Every frequency/ })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Export audio', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Explore a calibration session' }).click();
@@ -89,7 +89,7 @@ test('opens an honest empty workspace and real calibration analysis', async ({ p
 });
 
 test('imports and measures stereo without cancellation or downmix', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await openFixture(page);
   await expect(page.locator('.mini-stats').first()).toContainText('-1.000');
   await expect(page.locator('.mini-stats').first()).toContainText('-6.0 dBFS');
@@ -104,7 +104,7 @@ test('creates an actual reversible spectral edit, preserves the right channel an
 }) => {
   const file = fixture();
   const originalHash = createHash('sha256').update(file.buffer).digest('hex');
-  await page.goto('/');
+  await page.goto('./');
   await openFixture(page, file);
   await gainLayer(page);
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
@@ -140,7 +140,7 @@ test('creates an actual reversible spectral edit, preserves the right channel an
 });
 
 test('display FFT, brightness and zoom do not reinterpret saved edits', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await openFixture(page);
   await gainLayer(page);
   const before = await exportWav(page, '32');
@@ -155,7 +155,7 @@ test('display FFT, brightness and zoom do not reinterpret saved edits', async ({
 test('project save and relink verifies source identity before restoring layers', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto('./');
   await openFixture(page);
   await gainLayer(page);
   await page.getByRole('button', { name: 'Project', exact: true }).click();
@@ -182,7 +182,7 @@ test('project save and relink verifies source identity before restoring layers',
 });
 
 test('invalid WAV is rejected without destroying the current source', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await openFixture(page);
   await page.getByLabel('Import WAV').setInputFiles({
     name: 'broken.wav',
@@ -198,7 +198,7 @@ test('invalid WAV is rejected without destroying the current source', async ({ p
 });
 
 test('playback uses a real AudioWorklet clock and can pause', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await openFixture(page);
   await page.getByRole('button', { name: 'Play audio', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pause playback', exact: true })).toBeVisible();
@@ -215,7 +215,7 @@ test('playback uses a real AudioWorklet clock and can pause', async ({ page }) =
 test('brush and lasso produce persistent masks and GPU loss falls back without losing edits', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto('./');
   await openFixture(page);
   const viewport = page.getByLabel('Spectral audio canvas.', { exact: false });
   const rect = await viewport.boundingBox();
@@ -249,7 +249,7 @@ test('brush and lasso produce persistent masks and GPU loss falls back without l
 });
 
 test('browser output picker refuses the source filename before writing', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await openFixture(page);
   await page.evaluate(() => {
     Object.defineProperty(window, 'showSaveFilePicker', {
@@ -269,7 +269,7 @@ test('browser output picker refuses the source filename before writing', async (
 });
 
 test('keyboard commands protect typing and wheel/pinch zoom preserves audio', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await openFixture(page);
   const field = page.getByRole('textbox', { name: 'Layer name', exact: true });
   await field.fill('Typing B M L T stays in this field');
@@ -319,7 +319,7 @@ test('keyboard commands protect typing and wheel/pinch zoom preserves audio', as
 test('restoration is reversible, persists after recovery and preserves the unselected channel', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto('./');
   await openFixture(page);
   await number(page, 'Start', '0.5');
   await number(page, 'End', '1.5');
@@ -368,7 +368,7 @@ test('offline neural speech model renders real audio without a network dependenc
   page,
 }) => {
   test.setTimeout(120000);
-  await page.goto('/');
+  await page.goto('./');
   await openFixture(page);
   await page.context().setOffline(true);
   await number(page, 'Start', '0.5');

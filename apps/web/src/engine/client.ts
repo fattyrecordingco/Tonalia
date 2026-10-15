@@ -230,7 +230,7 @@ export class AudioEngine {
     }
     if (!this.context) {
       this.context = new AudioContext({ latencyHint: 'interactive' });
-      await this.context.audioWorklet.addModule('/audio-processor.js');
+      await this.context.audioWorklet.addModule(`${import.meta.env.BASE_URL}audio-processor.js`);
     }
     if (own !== this.generation) return;
     await this.context.resume();

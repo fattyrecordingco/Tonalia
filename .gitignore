@@ -14,3 +14,7 @@ test-results/
 .DS_Store
 *.wav
 *.tonalia.json
+
+site-dist/
+website-test-results/
+website-report/

@@ -1,5 +1,7 @@
 # Download and install Tonalia
 
+For a screenshot-led walkthrough, use the [Tonalia website and illustrated user guide](https://fattyrecordingco.github.io/Tonalia/guide/).
+
 Tonalia is developed by Fatty Recording Co. **0.2.0 is a development release** with nondestructive spectral editing, initial restoration tools, offline neural speech denoising and experimental LAN co-editing. The complete professional roadmap and Audition parity remain unverified.
 
 You do not need Node.js, Rust, a browser tab, a server or a Tonalia account to run an installed desktop app. The audio engine, WebAssembly, interface, icons and fonts are included. Audio stays on your machine.

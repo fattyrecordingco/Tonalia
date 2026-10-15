@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [react()],
+  base: process.env.TONALIA_PUBLIC_BASE || '/',
   clearScreen: false,
   server: {
     port: 1420,
