@@ -1,6 +1,6 @@
 {
   "name": "tonalia",
-  "version": "0.2.0",
+  "version": "0.4.1",
   "private": true,
   "type": "module",
   "description": "Nondestructive spectral audio editing by Fatty Recording Co",
@@ -14,7 +14,7 @@
     "desktop:build": "tauri build",
     "test:core": "cargo test -p tonalia-core",
     "test:e2e": "playwright test",
-    "check": "npm run typecheck && npm run test:core && npm run test:e2e",
+    "check": "npm run typecheck && npm run test:audio && npm run test:core && npm run test:e2e",
     "format": "prettier --write apps/web/src apps/web/public/audio-processor.js tests playwright.config.ts apps/web/vite.config.ts",
     "format:check": "prettier --check apps/web/src apps/web/public/audio-processor.js tests playwright.config.ts apps/web/vite.config.ts",
     "test:native": "node tests/native/smoke.mjs",
@@ -22,7 +22,9 @@
     "build:website": "node scripts/build-website.mjs",
     "preview:website": "node scripts/serve-website.mjs",
     "test:website": "playwright test --config playwright.website.config.ts",
-    "screenshots:guide": "node scripts/capture-guide.mjs"
+    "screenshots:guide": "node scripts/capture-guide.mjs",
+    "test:audio": "node tests/audio/worklet.mjs",
+    "test:brush:native": "node tests/native/brush-playback.mjs"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",

@@ -1,0 +1,6 @@
+AudioSet ontology, unchanged at revision d417d32bf59c711abb5910fd2f76a0eb44697991
+Copyright Google Inc. / Dan Ellis
+Source: https://github.com/audioset/ontology
+Licensed under Creative Commons Attribution-ShareAlike 4.0 International:
+https://creativecommons.org/licenses/by-sa/4.0/
+The ontology is downloaded unchanged as a separate data asset, not incorporated into the application source.

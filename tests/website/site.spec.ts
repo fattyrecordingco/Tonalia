@@ -63,7 +63,7 @@ test('OS instructions work by deep link and keyboard, and commands can be copied
   await expect(page.getByRole('tabpanel', { name: 'Linux', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Copy command', exact: true }).first().click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
-    'sudo apt install ./Tonalia_0.2.0_linux_amd64.deb',
+    'sudo apt install ./Tonalia_0.4.1_linux_amd64.deb',
   );
   await expect(page.getByRole('status').filter({ hasText: 'Command copied.' })).toHaveCount(1);
 });
@@ -76,6 +76,11 @@ test('guide search finds the right topic, clears correctly and handles no result
   await search.fill('48 kHz');
   await expect(page.locator('#restoration')).toBeVisible();
   await expect(page.locator('#workspace')).toBeHidden();
+  await search.fill('separation');
+  await expect(page.locator('#separation')).toBeVisible();
+  await expect(page.locator('#separation')).toContainText('installed desktop app');
+  await search.fill('Removed');
+  await expect(page.locator('#save-export')).toBeVisible();
   await search.fill('unfindable-topic-93812');
   await expect(page.getByText('No matching topic.', { exact: false })).toBeVisible();
   await search.fill('');
@@ -83,6 +88,35 @@ test('guide search finds the right topic, clears correctly and handles no result
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await page.getByRole('link', { name: 'Keys, mouse and trackpad', exact: true }).click();
   await expect(page).toHaveURL(/#shortcuts$/);
+});
+
+test('packaged browser path loads the engine and plays and exports the Removed signal', async ({
+  page,
+}) => {
+  await page.goto('app/');
+  await page.getByRole('button', { name: 'Explore a calibration session' }).click();
+  await page.getByText('SHA-256 verified', { exact: true }).waitFor();
+  await page.getByText(/2048 FFT/).waitFor();
+  await page.getByRole('button', { name: 'Removed', exact: true }).click();
+  await page.getByRole('button', { name: 'Play audio', exact: true }).click();
+  await page.waitForFunction(
+    () => document.querySelector('.time-display>span')?.textContent !== '0:00.000',
+  );
+  await page.getByRole('button', { name: 'Pause playback', exact: true }).click();
+  await page.evaluate(() =>
+    Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true }),
+  );
+  await page.getByRole('button', { name: 'Export audio', exact: true }).click();
+  await expect(page.getByLabel('Export signal', { exact: true })).toHaveValue('removed');
+  await page.getByLabel('Export precision').selectOption('64');
+  const waiting = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export WAV', exact: true }).click();
+  const downloadPath = await (await waiting).path();
+  expect(downloadPath).not.toBeNull();
+  const wav = await readFile(downloadPath!);
+  expect(wav.toString('ascii', 0, 4)).toBe('RIFF');
+  expect(wav.readUInt32LE(24)).toBe(48000);
+  expect(wav.subarray(44).every((byte) => byte === 0)).toBe(true);
 });
 
 test('screenshots open in an accessible dialog and Escape returns focus', async ({ page }) => {

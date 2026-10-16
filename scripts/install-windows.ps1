@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$InstallerPath, [string]$ReportPath='', [int]$ApplicationPid=0)
+param([Parameter(Mandatory=$true)][string]$InstallerPath, [string]$ReportPath='', [int]$ApplicationPid=0, [switch]$Update)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
@@ -12,7 +12,8 @@ public static class TonaliaInstallerButton {
 if($ApplicationPid){
   $setup=Get-Process -Id $ApplicationPid
   if($setup.Path -ne $InstallerPath){throw 'The supplied process is not this installer.'}
-}else{$setup = Start-Process -FilePath $InstallerPath -PassThru}
+}elseif($Update){$setup = Start-Process -FilePath $InstallerPath -ArgumentList '/P','/UPDATE' -PassThru}
+else{$setup = Start-Process -FilePath $InstallerPath -PassThru}
 $deadline = (Get-Date).AddMinutes(3)
 $clicked = @()
 while ((Get-Date) -lt $deadline) {
@@ -43,9 +44,15 @@ while ((Get-Date) -lt $deadline) {
 $setup.Refresh()
 if (-not $setup.HasExited) { throw 'The interactive installer did not finish within three minutes.' }
 if ($setup.ExitCode -ne 0) { throw "Installer exited with $($setup.ExitCode)" }
-$installed = Join-Path $env:LOCALAPPDATA 'Tonalia\tonalia-desktop.exe'
+$registration = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Tonalia'
+$installDirectory = $registration.InstallLocation.Trim('"')
+if (-not $installDirectory) { throw 'The installer did not register its installation directory.' }
+$installed = Join-Path $installDirectory 'tonalia-desktop.exe'
 if (-not (Test-Path $installed)) { throw 'The installed application is missing.' }
-$result=[PSCustomObject]@{ Installed = $true; Executable = $installed.Replace($env:USERPROFILE,'%USERPROFILE%'); Installer = $InstallerPath.Replace($env:USERPROFILE,'%USERPROFILE%'); InstallerSha256 = (Get-FileHash -Algorithm SHA256 $InstallerPath).Hash.ToLower(); InteractiveActions = $clicked }
+$installedVersion = (Get-Item $installed).VersionInfo.ProductVersion
+$installerVersion = (Get-Item $InstallerPath).VersionInfo.ProductVersion
+if ($installedVersion -ne $installerVersion -or $registration.DisplayVersion -ne $installedVersion) { throw 'The installed application version does not match the installer.' }
+$result=[PSCustomObject]@{ Installed = $true; Version = $installedVersion; Update = [bool]$Update; Executable = $installed.Replace($env:USERPROFILE,'%USERPROFILE%'); ExecutableSha256 = (Get-FileHash -Algorithm SHA256 $installed).Hash.ToLower(); Installer = $InstallerPath.Replace($env:USERPROFILE,'%USERPROFILE%'); InstallerSha256 = (Get-FileHash -Algorithm SHA256 $InstallerPath).Hash.ToLower(); InteractiveActions = $clicked }
 $json=$result | ConvertTo-Json -Depth 4
 if($ReportPath){[System.IO.File]::WriteAllText($ReportPath,$json,[System.Text.UTF8Encoding]::new($false))}
 Write-Output $json

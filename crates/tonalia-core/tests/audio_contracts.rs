@@ -135,12 +135,42 @@ fn brush_accumulation() {
             radius_time: 100.0,
             radius_hz: 100.0,
             opacity: 0.5,
+            hardness: None,
         },
         channel: None,
         feather_time: 0.0,
         feather_hz: 0.0,
     };
     assert!((m.weight(1000.0, 1000.0, 0) - 0.75).abs() < 1e-12);
+}
+#[test]
+fn continuous_brush_is_gap_free_and_opacity_is_independent_of_point_density() {
+    let make = |samples: Vec<f64>, hardness: f64| Mask {
+        shape: Shape::Brush {
+            points: samples
+                .into_iter()
+                .map(|sample| Point { sample, hz: 1000.0 })
+                .collect(),
+            radius_time: 10.0,
+            radius_hz: 100.0,
+            opacity: 0.4,
+            hardness: Some(hardness),
+        },
+        channel: Some(0),
+        feather_time: 0.0,
+        feather_hz: 0.0,
+    };
+    let sparse = make(vec![100.0, 1000.0], 0.5);
+    let dense = make((100..=1000).map(|t| t as f64).collect(), 0.5);
+    for t in 100..1000 {
+        for hz in [1000.0, 1040.0, 1075.0, 1101.0] {
+            assert!((sparse.weight(t as f64, hz, 0) - dense.weight(t as f64, hz, 0)).abs() < 1e-12);
+        }
+        assert!((sparse.weight(t as f64, 1040.0, 0) - 0.4).abs() < 1e-12);
+        assert_eq!(sparse.weight(t as f64, 1000.0, 1), 0.0);
+    }
+    assert_eq!(sparse.weight(500.0, 1075.0, 0), 0.2);
+    assert_eq!(make(vec![100.0], 1.0).weight(100.0, 1099.0, 0), 0.4);
 }
 #[test]
 fn lasso_and_validation() {

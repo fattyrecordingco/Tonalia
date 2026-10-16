@@ -65,6 +65,84 @@ fn gate_calibration_preserves_strong_tones_and_reduces_weak_noise() {
     }
 }
 #[test]
+fn captured_profile_reduces_noise_preserves_signal_and_matches_chunked_render() {
+    let frames = 48000usize;
+    let x: Vec<_> = (0..frames)
+        .flat_map(|t| {
+            let signal = 0.2 * (2.0 * PI * 937.5 * t as f64 / 48000.0).sin();
+            let noise = 0.01 * (2.0 * PI * 6000.0 * t as f64 / 48000.0).sin();
+            [signal + noise, 0.37]
+        })
+        .collect();
+    let noise: Vec<_> = (0..2048)
+        .flat_map(|t| [0.01 * (2.0 * PI * 6000.0 * t as f64 / 48000.0).sin(), 0.0])
+        .collect();
+    let mut analyzer = Analyzer::new(2048).unwrap();
+    let mut profile_db: Vec<f64> = analyzer
+        .spectrum(&noise, 2, 0)
+        .unwrap()
+        .iter()
+        .map(|v| *v as f64)
+        .collect();
+    profile_db.extend(vec![-240.0; 1025]);
+    let mut l = layer(
+        Processor::NoiseReduction {
+            profile_db,
+            reduction_db: 24.0,
+            sensitivity_db: 3.0,
+        },
+        0.0,
+        frames as f64,
+    );
+    validate_layers(&[l.clone()], frames as u64, 48000, 2).unwrap();
+    let y = render(&x, &[l.clone()]);
+    let projection = |v: &[f64], hz: f64| {
+        (4096..frames - 4096)
+            .map(|t| v[t * 2] * (2.0 * PI * hz * t as f64 / 48000.0).sin())
+            .sum::<f64>()
+            * 2.0
+            / (frames - 8192) as f64
+    };
+    assert!((projection(&y, 937.5) - 0.2).abs() < 0.0004);
+    assert!(projection(&y, 6000.0).abs() < 0.001);
+    assert!((0..frames).all(|t| y[t * 2 + 1] == x[t * 2 + 1]));
+    let halo = render_halo(&[l.clone()]) as usize;
+    let (a, b) = (16000usize, 33000usize);
+    let crop = render_layers(
+        &x[(a - halo) * 2..(b + halo) * 2],
+        (a - halo) as i64,
+        48000,
+        2,
+        &[l.clone()],
+        2048,
+    )
+    .unwrap();
+    for (a, b) in crop[halo * 2..(halo + b - a) * 2]
+        .iter()
+        .zip(&y[a * 2..b * 2])
+    {
+        assert!((a - b).abs() < 1e-12);
+    }
+    let json = serde_json::to_string(&l).unwrap();
+    let restored: Layer = serde_json::from_str(&json).unwrap();
+    assert_eq!(y, render(&x, &[restored]));
+    if let Some(Processor::NoiseReduction {
+        ref mut reduction_db,
+        ..
+    }) = l.processor
+    {
+        *reduction_db = 0.0;
+    }
+    assert_eq!(x, render(&x, &[l.clone()]));
+    if let Some(Processor::NoiseReduction {
+        ref mut profile_db, ..
+    }) = l.processor
+    {
+        profile_db.pop();
+    }
+    assert!(validate_layers(&[l], frames as u64, 48000, 2).is_err());
+}
+#[test]
 fn interpolation_repairs_short_affine_gap_and_preserves_every_other_sample() {
     let mut x: Vec<_> = (0..5000).flat_map(|t| [t as f64 / 10000.0, 0.75]).collect();
     let original = x.clone();

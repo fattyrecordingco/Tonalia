@@ -6,10 +6,19 @@ import {
   useCallback,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
-import { AudioLines, FolderOpen, MousePointer2, ZoomIn, ZoomOut, Scan } from 'lucide-react';
+import {
+  AudioLines,
+  FolderOpen,
+  MousePointer2,
+  ZoomIn,
+  ZoomOut,
+  Scan,
+  ArrowUp,
+  ArrowDown,
+} from 'lucide-react';
 import type { WavInfo, View, Mask, Layer, Tool, Point, Analysis } from '../types';
 import { formatHz, formatTime, maskBounds } from '../types';
-import { clampView, zoomTime, zoomFrequency } from '../engine/navigation';
+import { clampView, zoomTime, zoomFrequency, panFrequency } from '../engine/navigation';
 import { GpuSpectrogram } from '../engine/gpu-spectrogram';
 export interface Overview {
   peaks: Float32Array;
@@ -30,6 +39,7 @@ interface Props {
   pending: boolean;
   brushSize: number;
   opacity: number;
+  hardness: number;
   channel: number | null;
   onSelection: (s: Mask | null) => void;
   onView: (v: View) => void;
@@ -76,6 +86,7 @@ export function SpectralCanvas(p: Props) {
   const [useGpu, setUseGpu] = useState(false);
   const [size, setSize] = useState({ w: 1000, h: 550 });
   const [drawing, setDrawing] = useState(false);
+  const [hover, setHover] = useState<{ p: Point; ch: number } | null>(null);
   const gesture = useRef<{
     origin: Point;
     points: Point[];
@@ -278,6 +289,12 @@ export function SpectralCanvas(p: Props) {
     viewRef.current = v;
     p.onView(v);
   };
+  const zoomHz = (factor: number) => {
+    if (p.info) updateView(zoomFrequency(viewRef.current, p.info.sampleRate / 2, factor, 0.5));
+  };
+  const panHz = (fraction: number) => {
+    if (p.info) updateView(panFrequency(viewRef.current, p.info.sampleRate / 2, fraction));
+  };
   const zoom = (factor: number) =>
     updateView(zoomTime(viewRef.current, p.info?.frames || 1, factor));
   useEffect(() => {
@@ -292,7 +309,12 @@ export function SpectralCanvas(p: Props) {
       const dx = e.deltaX * unit,
         dy = e.deltaY * unit;
       const fraction = Math.max(0, Math.min(1, (e.clientX - r.left - LEFT) / width));
-      if (e.altKey) {
+      const axis =
+        e.clientY - r.top >= spectralTop &&
+        (e.clientX - r.left < LEFT || e.clientX - r.left > size.w - RIGHT);
+      if ((e.altKey && e.shiftKey) || (axis && !e.altKey)) {
+        updateView(panFrequency(v, p.info.sampleRate / 2, -dy / laneHeight));
+      } else if (e.altKey) {
         const y = e.clientY - r.top - spectralTop;
         const f = Math.max(
           0,
@@ -373,6 +395,11 @@ export function SpectralCanvas(p: Props) {
     if (v.x < LEFT || v.x > size.w - RIGHT) return;
     root.current?.focus({ preventScroll: true });
     const kind = e.button === 1 || p.tool === 'hand' ? 'hand' : p.tool;
+    if (
+      kind === 'brush' &&
+      (v.y < spectralTop || v.y >= spectralTop + laneHeight * p.info.channels)
+    )
+      return;
     const channel = p.channel;
     gesture.current = {
       origin: v.p,
@@ -386,13 +413,16 @@ export function SpectralCanvas(p: Props) {
       moved: false,
     };
     if (kind === 'brush') {
-      const radiusTime = Math.max(1, (p.brushSize / 2 / width) * (p.view.end - p.view.start));
-      const radiusHz = Math.max(
-        0.01,
-        (hzAt(v.y - p.brushSize / 2, v.ch) - hzAt(v.y + p.brushSize / 2, v.ch)) / 2,
-      );
+      const { radiusTime, radiusHz } = brushRadii(v.p.hz);
       const mask: Mask = {
-        shape: { kind: 'brush', points: [v.p], radiusTime, radiusHz, opacity: p.opacity },
+        shape: {
+          kind: 'brush',
+          points: [v.p],
+          radiusTime,
+          radiusHz,
+          opacity: p.opacity,
+          hardness: p.hardness,
+        },
         channel,
         featherTime: 0,
         featherHz: 0,
@@ -407,13 +437,31 @@ export function SpectralCanvas(p: Props) {
   const move = (e: ReactPointerEvent) => {
     if (!p.info) return;
     const v = point(e);
+    if (gesture.current && gesture.current.kind !== 'hand') {
+      v.p.hz = hzAt(v.y, gesture.current.channel);
+      v.ch = gesture.current.channel;
+    }
+    setHover(
+      v.x >= LEFT &&
+        v.x <= size.w - RIGHT &&
+        v.y >= spectralTop &&
+        v.y < spectralTop + laneHeight * p.info.channels
+        ? { p: v.p, ch: v.ch }
+        : null,
+    );
     p.onCursor(v.p);
     const g = gesture.current;
     if (!g) return;
     if (Math.hypot(v.x - g.x, v.y - g.y) > 3) g.moved = true;
     if (g.kind === 'hand') {
       const delta = (-(v.x - g.x) / width) * (g.view.end - g.view.start);
-      p.onView(fitView({ ...g.view, start: g.view.start + delta, end: g.view.end + delta }));
+      updateView(
+        panFrequency(
+          fitView({ ...g.view, start: g.view.start + delta, end: g.view.end + delta }),
+          p.info.sampleRate / 2,
+          (v.y - g.y) / laneHeight,
+        ),
+      );
       return;
     }
     let shape: Mask['shape'];
@@ -424,13 +472,11 @@ export function SpectralCanvas(p: Props) {
         (v.p.sample - last.sample) / s.radiusTime,
         (v.p.hz - last.hz) / s.radiusHz,
       );
-      if (distance < 0.3) return;
-      const steps = Math.min(32, Math.ceil(distance / 0.35));
-      const add = Array.from({ length: steps }, (_, i) => ({
-        sample: Math.round(last.sample + ((v.p.sample - last.sample) * (i + 1)) / steps),
-        hz: last.hz + ((v.p.hz - last.hz) * (i + 1)) / steps,
-      }));
-      shape = { ...s, points: [...s.points, ...add].slice(0, 1024) };
+      if (distance < 0.12) return;
+      // Continuous DSP segments do not need synthetic dabs. Simplify old points
+      // when the geometry budget fills, always retaining the newest endpoint.
+      const points = s.points.length >= 4096 ? s.points.filter((_, i) => i % 2 === 0) : s.points;
+      shape = { ...s, points: [...points, v.p] };
     } else if (g.kind === 'lasso') {
       const last = g.points[g.points.length - 1];
       if (Math.abs(tx(last.sample) - v.x) + Math.abs(fy(last.hz, g.channel) - v.y) < 3) return;
@@ -455,6 +501,24 @@ export function SpectralCanvas(p: Props) {
     g.mask = mask;
     p.onSelection(mask);
   };
+  const brushRadii = (hz: number) => ({
+    radiusTime: Math.max(
+      1,
+      Math.min(
+        (p.info?.sampleRate || 48000) * 10,
+        (p.brushSize / 2 / width) * (p.view.end - p.view.start),
+      ),
+    ),
+    radiusHz: Math.max(
+      0.01,
+      Math.min(
+        (p.info?.sampleRate || 48000) / 2,
+        p.view.log
+          ? hz * Math.sinh((p.brushSize / 2 / laneHeight) * Math.log(p.view.high / p.view.low))
+          : (p.brushSize / 2 / laneHeight) * (p.view.high - p.view.low),
+      ),
+    ),
+  });
   const up = () => {
     const g = gesture.current;
     gesture.current = null;
@@ -475,9 +539,29 @@ export function SpectralCanvas(p: Props) {
       out.push(t);
     return out;
   }, [p.view, p.info]);
-  const freqTicks = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].filter(
-    (f) => f >= p.view.low && f <= p.view.high,
-  );
+  const frequencyFloor = p.view.log ? 20 : 0;
+  const transformHz = (hz: number) => (p.view.log ? Math.log(Math.max(20, hz)) : hz);
+  const fullFrequencySpan =
+    transformHz((p.info?.sampleRate || 48000) / 2) - transformHz(frequencyFloor);
+  const visibleFrequencySpan = transformHz(p.view.high) - transformHz(p.view.low);
+  const frequencyPanRoom = Math.max(0, fullFrequencySpan - visibleFrequencySpan);
+  const frequencyPosition =
+    frequencyPanRoom > 1e-9
+      ? Math.max(
+          0,
+          Math.min(1, (transformHz(p.view.low) - transformHz(frequencyFloor)) / frequencyPanRoom),
+        )
+      : 0;
+  const freqTicks = useMemo(() => {
+    if (p.view.log && p.view.high / p.view.low > 4)
+      return [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].filter(
+        (f) => f >= p.view.low && f <= p.view.high,
+      );
+    const step = niceStep((p.view.high - p.view.low) / 6);
+    const ticks = [];
+    for (let f = Math.ceil(p.view.low / step) * step; f <= p.view.high; f += step) ticks.push(f);
+    return ticks;
+  }, [p.view.low, p.view.high, p.view.log]);
   const maskPath = (m: Mask, ch: number, key: string, selected: boolean) => {
     if (m.channel !== null && m.channel !== ch) return null;
     const s = m.shape;
@@ -514,6 +598,43 @@ export function SpectralCanvas(p: Props) {
           {...common}
         />
       );
+    if (s.hardness !== undefined) {
+      // Render continuous capsules in the same sample/Hz space as the DSP,
+      // then project onto the selected frequency scale. One filled path keeps
+      // self-overlaps from visually accumulating opacity.
+      const outline = (radius: number) => {
+        const paths: string[] = [];
+        const xy = (sample: number, hz: number) => `${tx(sample)},${fy(hz, ch)}`;
+        for (let i = 0; i < s.points.length; i++) {
+          const a = s.points[i];
+          const circle = Array.from({ length: 16 }, (_, j) => {
+            const angle = (-j / 16) * Math.PI * 2;
+            return `${j ? 'L' : 'M'}${xy(a.sample + Math.cos(angle) * s.radiusTime * radius, a.hz + Math.sin(angle) * s.radiusHz * radius)}`;
+          });
+          paths.push(circle.join(' ') + 'Z');
+          const b = s.points[i + 1];
+          if (!b) continue;
+          const dx = (b.sample - a.sample) / s.radiusTime;
+          const dy = (b.hz - a.hz) / s.radiusHz;
+          const length = Math.hypot(dx, dy);
+          if (length < 1e-12) continue;
+          const nx = (-dy / length) * s.radiusTime * radius;
+          const ny = (dx / length) * s.radiusHz * radius;
+          paths.push(
+            `M${xy(a.sample + nx, a.hz + ny)}L${xy(b.sample + nx, b.hz + ny)}L${xy(b.sample - nx, b.hz - ny)}L${xy(a.sample - nx, a.hz - ny)}Z`,
+          );
+        }
+        return paths.join(' ');
+      };
+      return (
+        <g key={key} fill={color}>
+          <path d={outline(1)} fillOpacity={selected ? s.opacity * 0.2 : 0.04} />
+          {s.hardness > 0 && (
+            <path d={outline(s.hardness)} fillOpacity={selected ? s.opacity * 0.15 : 0.02} />
+          )}
+        </g>
+      );
+    }
     return (
       <g key={key}>
         {s.points
@@ -570,10 +691,11 @@ export function SpectralCanvas(p: Props) {
           {p.pending
             ? 'Analyzing…'
             : p.analysis
-              ? `${useGpu ? 'GPU · ' : 'CPU · '}${(p.analysis.hop / (p.info?.sampleRate || 1)) * 1000 >= 100 ? 'Sampled overview · ' : ''}${p.analysis.fftSize} FFT · Hann`
+              ? `${useGpu ? 'GPU · ' : 'CPU · '}${(p.analysis.hop / (p.info?.sampleRate || 1)) * 1000 >= 100 ? 'Sampled overview · ' : ''}${p.analysis.fftSize} FFT · ${(p.analysis.sampleRate / p.analysis.fftSize).toFixed(1)} Hz/bin · Hann`
               : 'No source'}
         </span>
         <div className="canvas-zoom">
+          <span className="zoom-axis">Time</span>
           <button title="Zoom out" aria-label="Zoom out" onClick={() => zoom(2)} disabled={!p.info}>
             <ZoomOut size={15} />
           </button>
@@ -585,6 +707,54 @@ export function SpectralCanvas(p: Props) {
             aria-label="Fit source"
             onClick={p.onFit}
             disabled={!p.info}
+          >
+            <Scan size={15} />
+          </button>
+          <span className="zoom-axis">Hz</span>
+          <button
+            title="Zoom out vertically (Alt + wheel)"
+            aria-label="Zoom out frequency"
+            onClick={() => zoomHz(2)}
+            disabled={!p.info}
+          >
+            <ZoomOut size={15} />
+          </button>
+          <button
+            title="Zoom in vertically (Alt + wheel)"
+            aria-label="Zoom in frequency"
+            onClick={() => zoomHz(0.5)}
+            disabled={!p.info}
+          >
+            <ZoomIn size={15} />
+          </button>
+          <button
+            title="Pan to higher frequencies"
+            aria-label="Pan frequency up"
+            onClick={() => panHz(0.2)}
+            disabled={!p.info}
+          >
+            <ArrowUp size={14} />
+          </button>
+          <button
+            title="Pan to lower frequencies"
+            aria-label="Pan frequency down"
+            onClick={() => panHz(-0.2)}
+            disabled={!p.info}
+          >
+            <ArrowDown size={14} />
+          </button>
+          <button
+            title="Fit frequency range"
+            aria-label="Fit frequency range"
+            disabled={!p.info}
+            onClick={() => {
+              if (p.info)
+                updateView({
+                  ...viewRef.current,
+                  low: p.view.log ? 20 : 0,
+                  high: p.info.sampleRate / 2,
+                });
+            }}
           >
             <Scan size={15} />
           </button>
@@ -608,11 +778,39 @@ export function SpectralCanvas(p: Props) {
         onPointerCancel={() => {
           gesture.current = null;
           setDrawing(false);
+          setHover(null);
         }}
         onPointerLeave={() => {
+          setHover(null);
           if (!gesture.current) p.onCursor(null);
         }}
       >
+        {p.info && (
+          <input
+            className="frequency-scrollbar"
+            aria-label="Frequency scroll"
+            title="Drag to scroll frequency. Scroll over the Hz ruler to pan vertically; Alt + scroll to zoom."
+            type="range"
+            min="0"
+            max="1"
+            step="0.001"
+            value={frequencyPosition}
+            disabled={frequencyPanRoom < 1e-9}
+            style={{ top: spectralTop, right: 1, height: laneHeight * p.info.channels }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              if (p.info && visibleFrequencySpan > 0)
+                updateView(
+                  panFrequency(
+                    viewRef.current,
+                    p.info.sampleRate / 2,
+                    ((+e.target.value - frequencyPosition) * frequencyPanRoom) /
+                      visibleFrequencySpan,
+                  ),
+                );
+            }}
+          />
+        )}
         <canvas
           ref={wave}
           className="source-waveform"
@@ -708,6 +906,47 @@ export function SpectralCanvas(p: Props) {
                 <g clipPath={`url(#lane-${ch})`}>
                   {p.layers.filter((l) => l.enabled).map((l) => maskPath(l.mask, ch, l.id, false))}
                   {p.selection && maskPath(p.selection, ch, 'selection', true)}
+                  {p.tool === 'brush' &&
+                    hover?.ch === ch &&
+                    (() => {
+                      const s = gesture.current?.mask?.shape;
+                      const radii = s?.kind === 'brush' ? s : brushRadii(hover.p.hz);
+                      return (
+                        <g className="brush-preview" data-testid="brush-preview">
+                          {[1, p.hardness]
+                            .filter((r) => r > 0)
+                            .map((r) => (
+                              <ellipse
+                                key={r}
+                                cx={tx(hover.p.sample)}
+                                cy={
+                                  (fy(hover.p.hz + radii.radiusHz * r, ch) +
+                                    fy(hover.p.hz - radii.radiusHz * r, ch)) /
+                                  2
+                                }
+                                rx={Math.max(
+                                  1,
+                                  tx(hover.p.sample + radii.radiusTime * r) - tx(hover.p.sample),
+                                )}
+                                ry={Math.max(
+                                  1,
+                                  (fy(hover.p.hz - radii.radiusHz * r, ch) -
+                                    fy(hover.p.hz + radii.radiusHz * r, ch)) /
+                                    2,
+                                )}
+                                fill="none"
+                                stroke={r === 1 ? '#e9fff6' : '#b0efdc'}
+                                strokeWidth={1}
+                                strokeDasharray={r === 1 ? undefined : '2 3'}
+                              />
+                            ))}
+                          <path
+                            d={`M${tx(hover.p.sample) - 3},${fy(hover.p.hz, ch)}h6M${tx(hover.p.sample)},${fy(hover.p.hz, ch) - 3}v6`}
+                            stroke="#e9fff6"
+                          />
+                        </g>
+                      );
+                    })()}
                 </g>
                 <line
                   x1={LEFT}
@@ -762,7 +1001,7 @@ export function SpectralCanvas(p: Props) {
               Within reach.
             </h1>
             <p>
-              Open a WAV recording to explore its spectrum
+              Drop a WAV recording here to explore its spectrum
               <br />
               and make your first reversible edit.
             </p>
@@ -792,7 +1031,8 @@ export function SpectralCanvas(p: Props) {
                 ? 'Draw around frequencies'
                 : 'Drag to select'}
           <span className="shortcut-hint">
-            Scroll / pinch to zoom · Shift + scroll to pan · Alt to zoom Hz
+            Scroll / pinch to zoom · Shift + scroll to pan · Scroll Hz ruler to pan vertically · Alt
+            to zoom Hz
           </span>
         </span>
         <div className="db-key">

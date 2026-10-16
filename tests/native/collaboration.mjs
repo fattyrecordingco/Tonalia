@@ -1,10 +1,11 @@
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
-import { mkdtemp, writeFile, mkdir, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, readFile, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createServer } from 'node:net';
 import assert from 'node:assert/strict';
+const { version } = JSON.parse(await readFile('package.json', 'utf8'));
 const temp = await mkdtemp(join(tmpdir(), 'tonalia-two-peers-'));
 const source = join(temp, 'shared-reference.wav');
 const frames = 48000;
@@ -71,8 +72,8 @@ async function peer(index) {
 try {
   const host = await peer(1),
     guest = await peer(2);
-  assert((await host.locator('.status-bar').innerText()).includes('Tonalia 0.2.0'));
-  assert((await guest.locator('.status-bar').innerText()).includes('Tonalia 0.2.0'));
+  assert((await host.locator('.status-bar').innerText()).includes(`Tonalia ${version}`));
+  assert((await guest.locator('.status-bar').innerText()).includes(`Tonalia ${version}`));
   await host.getByRole('tab', { name: 'Share', exact: true }).click();
   await host.getByRole('button', { name: 'Host session', exact: true }).click();
   await host.getByLabel('Session invite', { exact: true }).waitFor();
@@ -109,7 +110,7 @@ try {
   );
   await guest.getByRole('button', { name: 'Leave session', exact: true }).click();
   const report = {
-    version: '0.2.0',
+    version,
     executable: (
       process.env.TONALIA_TEST_EXECUTABLE || resolve('target/release/tonalia-desktop.exe')
     ).replace(process.env.USERPROFILE, '%USERPROFILE%'),
@@ -127,9 +128,9 @@ try {
     webViewInternetBlocked: true,
     scope: 'Two native app processes on loopback; cross-machine LAN remains unqualified.',
   };
-  await mkdir('docs/implementation', { recursive: true });
+  await mkdir('test-results', { recursive: true });
   await writeFile(
-    process.env.TONALIA_COLLAB_REPORT || 'docs/implementation/windows-0.2-two-peers.json',
+    process.env.TONALIA_COLLAB_REPORT || 'test-results/native-two-peers.json',
     JSON.stringify(report, null, 2) + '\n',
   );
   console.log(JSON.stringify(report, null, 2));

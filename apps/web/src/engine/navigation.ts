@@ -19,10 +19,25 @@ export function zoomFrequency(v: View, nyquist: number, factor: number, fraction
   const inverse = (x: number) => (v.log ? Math.exp(x) : x);
   const bottom = transform(min),
     top = transform(nyquist);
-  const low = transform(v.low),
-    high = transform(v.high);
+  fraction = Math.max(0, Math.min(1, fraction));
+  const low = transform(Math.max(min, v.low)),
+    high = transform(Math.min(nyquist, v.high));
   const span = Math.min(top - bottom, Math.max(v.log ? 0.005 : 1, (high - low) * factor));
   const anchor = low + fraction * (high - low);
   const next = Math.max(bottom, Math.min(top - span, anchor - fraction * span));
   return { ...v, low: Math.max(min, inverse(next)), high: Math.min(nyquist, inverse(next + span)) };
+}
+export function panFrequency(v: View, nyquist: number, fraction: number): View {
+  const min = v.log ? Math.min(20, nyquist / 2) : 0;
+  const low = v.log ? Math.log(Math.max(min, v.low)) : v.low;
+  const high = v.log ? Math.log(v.high) : v.high;
+  const bottom = v.log ? Math.log(min) : min;
+  const top = v.log ? Math.log(nyquist) : nyquist;
+  const span = Math.min(top - bottom, high - low);
+  const next = Math.max(bottom, Math.min(top - span, low + fraction * span));
+  return {
+    ...v,
+    low: Math.max(min, v.log ? Math.exp(next) : next),
+    high: Math.min(nyquist, v.log ? Math.exp(next + span) : next + span),
+  };
 }

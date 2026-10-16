@@ -48,12 +48,13 @@ async function gainLayer(page: Page) {
   await expect(page.getByRole('button', { name: /Delete Spectral attenuation/ })).toBeVisible();
   await expect(page.getByText('Processed spectrum', { exact: true })).toBeVisible();
 }
-async function exportWav(page: Page, bits = '64') {
+async function exportWav(page: Page, bits = '64', signal?: 'result' | 'original' | 'removed') {
   await page.evaluate(() => {
     Object.defineProperty(window, 'showSaveFilePicker', { value: undefined, configurable: true });
   });
   await page.getByRole('button', { name: 'Export audio', exact: true }).click();
   await page.getByLabel('Export precision').selectOption(bits);
+  if (signal) await page.getByLabel('Export signal', { exact: true }).selectOption(signal);
   const waiting = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export WAV', exact: true }).click();
   const download = await waiting;
@@ -61,6 +62,199 @@ async function exportWav(page: Page, bits = '64') {
   expect(path).toBeTruthy();
   return readFile(path!);
 }
+
+test('exports Removed independently and Result plus Removed reconstructs the original', async ({
+  page,
+}) => {
+  await page.goto('./');
+  const file = fixture();
+  await openFixture(page, file);
+  await gainLayer(page);
+  const result = await exportWav(page);
+  await page.getByRole('button', { name: 'Removed', exact: true }).click();
+  const removed = await exportWav(page);
+  const original = await exportWav(page, '64', 'original');
+  let removedEnergy = 0,
+    reconstructionError = 0,
+    rightError = 0,
+    originalError = 0;
+  for (let i = 0; i < 144000; i++) {
+    const raw = file.buffer.readInt16LE(44 + i * 4) / 32768;
+    const a = result.readDoubleLE(44 + i * 16),
+      b = removed.readDoubleLE(44 + i * 16);
+    reconstructionError = Math.max(reconstructionError, Math.abs(a + b - raw));
+    rightError = Math.max(rightError, Math.abs(removed.readDoubleLE(52 + i * 16)));
+    originalError = Math.max(originalError, Math.abs(original.readDoubleLE(44 + i * 16) - raw));
+    removedEnergy += b * b;
+  }
+  expect(removedEnergy).toBeGreaterThan(100);
+  expect(reconstructionError).toBeLessThan(1e-14);
+  expect(rightError).toBe(0);
+  expect(originalError).toBe(0);
+  await page.getByRole('button', { name: 'Bypass Spectral attenuation', exact: true }).click();
+  const empty = await exportWav(page, '64', 'removed');
+  expect(empty.subarray(44).every((value) => value === 0)).toBe(true);
+});
+
+test('frequency scrollbar and ruler wheel pan vertically without changing the time view', async ({
+  page,
+}) => {
+  await page.goto('./');
+  await openFixture(page);
+  const slider = page.getByRole('slider', { name: 'Frequency scroll', exact: true });
+  await expect(slider).toBeDisabled();
+  await page.getByRole('button', { name: 'Zoom in frequency', exact: true }).click();
+  await expect(slider).toBeEnabled();
+  const overview = await page.locator('.overview-window').getAttribute('style');
+  const low = page.getByRole('textbox', { name: 'View low frequency', exact: true });
+  await slider.fill('0.7');
+  const higher = Number(await low.inputValue());
+  const box = (await page.locator('.spectral-viewport').boundingBox())!;
+  await page.mouse.move(box.x + 20, box.y + box.height * 0.55);
+  await page.mouse.wheel(0, 70);
+  await expect.poll(async () => Number(await low.inputValue())).toBeLessThan(higher);
+  expect(await page.locator('.overview-window').getAttribute('style')).toBe(overview);
+});
+
+test('separation workspace explains local desktop requirements and exposes automatic analysis and manual modes', async ({
+  page,
+}) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Separate sounds', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Separate sounds', exact: true });
+  await expect(dialog).toBeVisible();
+  for (const name of [
+    'Auto separate',
+    'Music stems',
+    'Isolate a sound',
+    'Find sounds',
+    'Tiny clicks',
+  ]) {
+    await dialog.getByRole('tab', { name, exact: true }).click();
+    await expect(dialog.getByText(/runs in the Tonalia desktop app/)).toBeVisible();
+  }
+  await page.keyboard.press('Escape');
+  await expect(dialog).not.toBeVisible();
+});
+
+test('WAV drops open directly, invalid drops keep the source, and vertical zoom is precise', async ({
+  page,
+}) => {
+  await page.goto('./');
+  const drop = async (file: ReturnType<typeof fixture>) => {
+    await page.locator('.spectral-viewport').evaluate(
+      (el, file) => {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(
+          new File([new Uint8Array(file.bytes)], file.name, { type: file.mimeType }),
+        );
+        el.dispatchEvent(
+          new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer }),
+        );
+        el.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
+      },
+      { name: file.name, mimeType: file.mimeType, bytes: Array.from(file.buffer) },
+    );
+  };
+  await drop(fixture('Dropped.WAV'));
+  await expect(page.getByText('SHA-256 verified', { exact: true })).toBeVisible();
+  await expect(page.getByText('Dropped.WAV', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('.drop-overlay')).toHaveCount(0);
+  await drop({ name: 'unsupported.mp3', mimeType: 'audio/mpeg', buffer: Buffer.from('invalid') });
+  await expect(page.getByRole('alert')).toContainText('Drop a WAV');
+  await expect(page.getByText('Dropped.WAV', { exact: true }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Dismiss error' }).click();
+  const overview = await page.locator('.overview-window').getAttribute('style');
+  await page.getByRole('button', { name: 'Zoom in frequency', exact: true }).click();
+  const low = page.getByRole('textbox', { name: 'View low frequency', exact: true });
+  const high = page.getByRole('textbox', { name: 'View high frequency', exact: true });
+  await expect.poll(async () => Number(await low.inputValue())).toBeGreaterThan(20);
+  await expect.poll(async () => Number(await high.inputValue())).toBeLessThan(24000);
+  expect(await page.locator('.overview-window').getAttribute('style')).toBe(overview);
+  const previous = Number(await low.inputValue());
+  await page.getByRole('button', { name: 'Pan frequency up' }).click();
+  await expect.poll(async () => Number(await low.inputValue())).toBeGreaterThan(previous);
+  await number(page, 'View low frequency', '900');
+  await number(page, 'View high frequency', '1000');
+  await expect(
+    page
+      .locator('.canvas-overlay .ruler-text')
+      .filter({ hasText: /^9[2468]0$/ })
+      .first(),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Spectral brush', exact: true }).click();
+  await page.getByLabel('Brush diameter', { exact: true }).fill('2');
+  await page.getByLabel('Brush hardness', { exact: true }).fill('0.5');
+  const rect = (await page.locator('.spectral-viewport').boundingBox())!;
+  await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height * 0.6);
+  await expect(page.getByTestId('brush-preview')).toBeAttached();
+  await page.mouse.down();
+  await page.mouse.move(rect.x + rect.width * 0.7, rect.y + rect.height * 0.6);
+  await page.mouse.up();
+  await page.getByRole('button', { name: 'Create gain layer', exact: true }).click();
+  await expect(page.getByRole('button', { name: /Delete Spectral attenuation/ })).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/precision-brush.png' });
+  await page.getByRole('button', { name: 'Fit frequency range', exact: true }).click();
+  await expect(low).toHaveValue('20.0');
+  await expect(high).toHaveValue('24000.0');
+});
+
+test('captured noise reduction survives project reload and exports channel-scoped audio', async ({
+  page,
+}) => {
+  await page.goto('./');
+  const file = fixture('Noise and signal.wav');
+  for (let i = 0; i < 48000 * 3; i++) {
+    const noise = 0.02 * Math.sin((2 * Math.PI * 6000 * i) / 48000);
+    const signal = i >= 24000 ? 0.4 * Math.sin((2 * Math.PI * 937.5 * i) / 48000) : 0;
+    file.buffer.writeInt16LE(Math.round((noise + signal) * 32767), 44 + i * 4);
+  }
+  await openFixture(page, file);
+  await number(page, 'Start', '0.1');
+  await number(page, 'End', '0.4');
+  await page.getByLabel('Target channels').selectOption('0');
+  await page.getByRole('tab', { name: 'Restore', exact: true }).click();
+  await page.getByLabel('Restoration operation').selectOption('noiseReduction');
+  await expect(
+    page.getByRole('button', { name: 'Create restoration layer', exact: true }),
+  ).toBeDisabled();
+  await page.getByRole('button', { name: 'Capture noise profile', exact: true }).click();
+  await expect(page.getByText(/Noise profile ready/)).toBeVisible();
+  await page.getByRole('button', { name: 'Select entire recording', exact: true }).click();
+  await number(page, 'Maximum reduction', '24');
+  await page.getByRole('button', { name: 'Create restoration layer', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Delete Noise reduction', exact: true }),
+  ).toBeVisible();
+  await page.screenshot({ path: 'test-results/noise-reduction.png' });
+  const original = await exportWav(page);
+  const energy = (data: Buffer, processed: boolean) => {
+    let energy = 0;
+    for (let i = 4096; i < 16000; i++)
+      energy +=
+        (processed ? data.readDoubleLE(44 + i * 16) : data.readInt16LE(44 + i * 4) / 32768) ** 2;
+    return energy;
+  };
+  expect(energy(original, true) / energy(file.buffer, false)).toBeLessThan(0.02);
+  for (const i of [1000, 9000, 30000, 90000])
+    expect(original.readDoubleLE(52 + i * 16)).toBe(file.buffer.readInt16LE(46 + i * 4) / 32768);
+  const wait = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Project', exact: true }).click();
+  await page.getByRole('button', { name: /Save project/ }).click();
+  const download = await wait;
+  const saved = await readFile((await download.path())!);
+  expect(JSON.parse(saved.toString()).layers[0].processor.profileDb).toHaveLength(2050);
+  await page.getByRole('button', { name: 'Bypass Noise reduction', exact: true }).click();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page
+    .getByLabel('Import project', { exact: true })
+    .setInputFiles({ name: 'noise.tonalia.json', mimeType: 'application/json', buffer: saved });
+  await expect(
+    page.getByRole('button', { name: 'Bypass Noise reduction', exact: true }),
+  ).toBeVisible();
+  expect(await exportWav(page)).toEqual(original);
+});
 
 test('opens an honest empty workspace and real calibration analysis', async ({ page }) => {
   const errors: string[] = [];

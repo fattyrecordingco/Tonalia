@@ -1,0 +1,118 @@
+{
+  "version": "0.4.1",
+  "date": "2026-10-16",
+  "rust": {
+    "corePassed": 25,
+    "desktopPassed": 5
+  },
+  "workletRecovery": true,
+  "browserPassed": 17,
+  "websiteAndPagesEditorPassed": 25,
+  "pythonRealModelPassed": 11,
+  "brush": {
+    "version": "0.4.1",
+    "layers": 7,
+    "pointsPerStroke": 512,
+    "channels": 2,
+    "sourceRate": 44100,
+    "concurrentSpectrogramAnalysis": true,
+    "playbackPositions": {
+      "Result": "0:08.482",
+      "Removed": "0:08.432"
+    },
+    "sourceUnchanged": true,
+    "pageErrors": []
+  },
+  "native": {
+    "appVersion": "0.4.1",
+    "sharedSession": {
+      "acceptedRevision": 1,
+      "conflict": true,
+      "retainedLayers": 1,
+      "badToken": true,
+      "badSource": true
+    },
+    "restoration": {
+      "nativeGate": true,
+      "nativeNeural": true,
+      "neuralDifference": 75.33393107057583,
+      "neuralExportMs": 135.83560000000034
+    },
+    "date": "2026-10-16T21:12:48.405Z",
+    "platform": "win32",
+    "arch": "x64",
+    "webview": "155.0.4283.60",
+    "nativeIpc": true,
+    "nativePathDropEvents": true,
+    "nativeOpenExportAndProjectPickers": false,
+    "offlineWebView": true,
+    "networkIsolation": "Outbound HTTP(S) uses an unreachable per-process proxy; external DNS is blocked. Local Tauri IPC remains available. Browser routing also rejects external origins.",
+    "externalRequests": [],
+    "sourceLoadAndAnalysisMs": 688,
+    "nativePlaybackPosition": "0:00.532",
+    "nativePlaybackErrors": [],
+    "exportFrames": 192000,
+    "exportRate": 48000,
+    "exportBits": 64,
+    "measuredGainDb": -5.999999670508216,
+    "removedExportReconstructionError": 0,
+    "untouchedRightChannelMaxError": 0,
+    "outsideSupportMaxError": 0,
+    "sourceBytesUnchanged": true,
+    "sourceOverwritePrevented": true,
+    "nativeProjectSaved": true,
+    "projectSourceOverwritePrevented": true,
+    "cancelledCandidatePreservesCurrentSource": true,
+    "pageErrors": [],
+    "qualification": "Development smoke test only. No physical loopback, latency or long-session qualification."
+  },
+  "automaticSeparation": {
+    "version": "0.4.1",
+    "sources": [
+      {
+        "classId": "/m/09x0r",
+        "label": "Speech",
+        "confidence": 0.8075623512268066,
+        "seconds": 4.32
+      },
+      {
+        "classId": "/m/07pp8cl",
+        "label": "Telephone bell ringing",
+        "confidence": 0.6657037138938904,
+        "seconds": 2.56
+      }
+    ],
+    "analysisDrivenSuggestions": true,
+    "noExamplePresets": true,
+    "directExtraction": true,
+    "automaticTracks": 3,
+    "spectralCleanup": 0.55,
+    "reconstructionMaxError": 2.1037152464487008e-08,
+    "nativePreview": true,
+    "nativeTrackExport": 3,
+    "confidenceAbstention": true,
+    "retainedExistingPacks": true,
+    "sourceUnchanged": true,
+    "pageErrors": []
+  },
+  "musicAndTransients": {
+    "localModels": true,
+    "nativeMusicTracks": 7,
+    "reconstructionMaxError": 1.497861590316063e-08,
+    "quietClickCandidates": 1,
+    "preview": true,
+    "nativeTrackExport": true,
+    "cancellation": true,
+    "openTrackInEditor": true,
+    "modelPacks": {
+      "pythonAvailable": true,
+      "runtimeReady": true,
+      "music": true,
+      "sound": true,
+      "identify": true,
+      "busy": false
+    },
+    "sourceUnchanged": true,
+    "pageErrors": []
+  }
+}

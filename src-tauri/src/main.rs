@@ -2,6 +2,7 @@
 mod audio;
 mod collaboration;
 mod media;
+mod separation;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -13,7 +14,7 @@ use std::{
         Arc, Mutex,
     },
 };
-use tauri::{Emitter, State};
+use tauri::{Emitter, Manager, State};
 use tonalia_core::{encode_float, float_wav_header, validate_layers, Layer};
 static IDS: AtomicU64 = AtomicU64::new(1);
 struct ExportControl {
@@ -22,12 +23,129 @@ struct ExportControl {
 }
 #[derive(Default)]
 struct AppState {
+    ai: Arc<separation::Jobs>,
     sources: Mutex<HashMap<String, Arc<media::Source>>>,
     playback: Mutex<Option<Arc<audio::Playback>>>,
     export: Mutex<Option<ExportControl>>,
     launch: Mutex<Option<Result<SourceRef, String>>>,
     installation_report: Option<PathBuf>,
     host: Mutex<Option<collaboration::Host>>,
+}
+#[tauri::command]
+async fn ai_status(state: State<'_, AppState>) -> Result<separation::Status, String> {
+    let jobs = state.ai.clone();
+    tauri::async_runtime::spawn_blocking(move || separation::status(&jobs))
+        .await
+        .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+async fn ai_prepare(
+    pack: String,
+    job_id: String,
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    if !["auto", "music", "sound", "identify", "transients"].contains(&pack.as_str()) {
+        return Err("Unknown AI pack.".into());
+    }
+    let control = separation::reserve(&state.ai)?;
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        separation::execute(
+            app,
+            control,
+            serde_json::json!({"operation": "prepare", "pack": pack}),
+            &job_id,
+            true,
+        )
+    })
+    .await;
+    *state
+        .ai
+        .current
+        .lock()
+        .map_err(|_| "AI job registry unavailable")? = None;
+    result.map_err(|e| e.to_string())?
+}
+#[tauri::command]
+async fn ai_start(
+    id: String,
+    job_id: String,
+    request: separation::Request,
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let source = source(&state, &id)?;
+    source.bytes(source.info.data_offset, 0)?;
+    if job_id.is_empty()
+        || job_id.len() > 80
+        || !job_id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-')
+        || !["auto", "music", "sound", "identify", "transients"].contains(&request.mode.as_str())
+        || request.start >= request.end
+        || request.end > source.info.frames
+        || request.end - request.start > u64::from(source.info.sample_rate) * 600
+        || request.prompt.chars().count() > 200
+        || request.prompts.len() > 8
+        || request
+            .prompts
+            .iter()
+            .any(|p| p.trim().is_empty() || p.chars().count() > 200)
+        || !request.sensitivity.is_finite()
+        || !(0.0..=1.0).contains(&request.sensitivity)
+        || !request.cleanup.is_finite()
+        || !(0.0..=1.0).contains(&request.cleanup)
+        || !request.confidence.is_finite()
+        || !(0.1..=0.95).contains(&request.confidence)
+        || request.source_hash.len() != 64
+        || !request.source_hash.chars().all(|c| c.is_ascii_hexdigit())
+    {
+        return Err("Choose a valid source range of at most 10 minutes and a sound description of at most 200 characters.".into());
+    }
+    let root = separation::root()?;
+    let output = root.join("jobs").join(&job_id);
+    std::fs::create_dir_all(root.join("jobs")).map_err(|e| e.to_string())?;
+    let control = separation::reserve(&state.ai)?;
+    let cleanup = output.clone();
+    let payload = serde_json::json!({"operation": "run", "jobId": job_id, "mode": request.mode, "sourcePath": source.path, "sourceHash": request.source_hash, "start": request.start, "end": request.end, "prompt": request.prompt, "prompts": request.prompts, "sensitivity": request.sensitivity, "cleanup": request.cleanup, "confidence": request.confidence, "output": output});
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        separation::execute(app, control, payload, &job_id, false)
+    })
+    .await;
+    *state
+        .ai
+        .current
+        .lock()
+        .map_err(|_| "AI job registry unavailable")? = None;
+    if let Err(error) = source.bytes(source.info.data_offset, 0) {
+        let _ = fs::remove_dir_all(&cleanup);
+        return Err(error);
+    }
+    if !cleanup.join("result.json").exists() {
+        let _ = fs::remove_dir_all(cleanup);
+    }
+    result.map_err(|e| e.to_string())?
+}
+#[tauri::command]
+fn ai_cancel(state: State<AppState>) -> Result<(), String> {
+    if let Some(control) = state
+        .ai
+        .current
+        .lock()
+        .map_err(|_| "AI job registry unavailable")?
+        .as_ref()
+    {
+        control.cancel();
+    }
+    Ok(())
+}
+#[tauri::command]
+async fn ai_export_tracks(job_id: String, destination: String) -> Result<usize, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        separation::export_tracks(&job_id, &PathBuf::from(destination))
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -162,6 +280,11 @@ struct ExportRequest {
     start: u64,
     end: u64,
     bits: u16,
+    #[serde(default = "export_result_mode")]
+    mode: String,
+}
+fn export_result_mode() -> String {
+    "result".into()
 }
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -205,6 +328,7 @@ async fn export_audio(
     if request.start >= request.end
         || request.end > s.info.frames
         || ![32, 64].contains(&request.bits)
+        || !["result", "original", "removed"].contains(&request.mode.as_str())
     {
         return Err("Invalid export range or precision".into());
     }
@@ -254,7 +378,17 @@ async fn export_audio(
                     return Err("Export cancelled; destination was not replaced.".into());
                 }
                 let end = (start + 32768).min(request.end);
-                let pcm = s.render(start, end, &request.layers)?;
+                let mut pcm = if request.mode == "original" {
+                    s.samples(start, end)?
+                } else {
+                    s.render(start, end, &request.layers)?
+                };
+                if request.mode == "removed" {
+                    let original = s.samples(start, end)?;
+                    for (sample, original) in pcm.iter_mut().zip(original) {
+                        *sample = original - *sample;
+                    }
+                }
                 for &v in &pcm {
                     peak = peak.max(v.abs());
                 }
@@ -450,7 +584,22 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(state)
+        .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::Destroyed) {
+                let state = window.state::<AppState>();
+                if let Ok(current) = state.ai.current.lock() {
+                    if let Some(control) = current.as_ref() {
+                        control.cancel();
+                    }
+                };
+            }
+        })
         .invoke_handler(tauri::generate_handler![
+            ai_status,
+            ai_prepare,
+            ai_start,
+            ai_cancel,
+            ai_export_tracks,
             host_session,
             stop_session,
             exchange_session,

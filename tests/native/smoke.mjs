@@ -215,6 +215,29 @@ try {
   assert.equal(outsideError, 0);
   const gainDb = 10 * Math.log10(afterPower / beforePower);
   assert(Math.abs(gainDb + 6) < 0.01);
+  const removedPath = join(temp, 'native-removed.wav');
+  await page.evaluate(
+    ({ path, layer }) =>
+      window.__TAURI_INTERNALS__.invoke('export_audio', {
+        id: '1',
+        request: { path, layers: [layer], start: 0, end: 192000, bits: 64, mode: 'removed' },
+      }),
+    { path: removedPath, layer },
+  );
+  const removed = await readFile(removedPath);
+  let reconstructionError = 0;
+  for (let i = 0; i < frames; i++) {
+    reconstructionError = Math.max(
+      reconstructionError,
+      Math.abs(
+        output.readDoubleLE(44 + i * 16) +
+          removed.readDoubleLE(44 + i * 16) -
+          input.readInt16LE(44 + i * 4) / 32768,
+      ),
+    );
+    assert.equal(removed.readDoubleLE(52 + i * 16), 0);
+  }
+  assert(reconstructionError < 1e-14);
   const hash = (b) => createHash('sha256').update(b).digest('hex');
   assert.equal(hash(await readFile(inputPath)), hash(input));
   // Verify that even an explicitly selected source output path is refused by the native boundary.
@@ -416,6 +439,34 @@ try {
     neuralDifference,
     neuralExportMs: performance.now() - neuralStarted,
   };
+  await page.evaluate(() => {
+    window.confirm = () => true;
+  });
+  // Deliver the desktop backend's path-drop event to the actual WebView listener.
+  // Browser File drops cannot verify this native import route.
+  const droppedPath = join(temp, 'native-dropped.WAV');
+  await writeFile(droppedPath, input);
+  const nativeDrop = async (event, paths) =>
+    page.evaluate(
+      async ({ event, paths }) => {
+        await window.__TAURI_INTERNALS__.invoke('plugin:event|emit_to', {
+          target: { kind: 'Webview', label: 'main' },
+          event,
+          payload: { paths, position: { x: 400, y: 300 } },
+        });
+      },
+      { event, paths },
+    );
+  await nativeDrop('tauri://drag-enter', [droppedPath]);
+  await page.locator('.drop-overlay').waitFor({ state: 'visible' });
+  await nativeDrop('tauri://drag-leave', []);
+  await page.locator('.drop-overlay').waitFor({ state: 'hidden' });
+  await nativeDrop('tauri://drag-drop', [droppedPath]);
+  await page.getByText('native-dropped.WAV', { exact: true }).first().waitFor();
+  await page.getByText('SHA-256 verified', { exact: true }).waitFor();
+  await nativeDrop('tauri://drag-drop', [inputPath]);
+  await page.getByText(inputPath.split(/[\\/]/).pop(), { exact: true }).first().waitFor();
+  await page.getByText('SHA-256 verified', { exact: true }).waitFor();
   await mkdir('docs/implementation', { recursive: true });
   await page.screenshot({ path: reportFile.replace(/\.json$/, '.png') });
   const appVersion =
@@ -430,6 +481,7 @@ try {
     arch: process.arch,
     webview: browser.version(),
     nativeIpc: true,
+    nativePathDropEvents: true,
     nativeOpenExportAndProjectPickers: nativePickers,
     executable: executable.replace(process.env.USERPROFILE || '\u0000', '%USERPROFILE%'),
     offlineWebView: offline,
@@ -444,6 +496,7 @@ try {
     exportRate: rate,
     exportBits: 64,
     measuredGainDb: gainDb,
+    removedExportReconstructionError: reconstructionError,
     untouchedRightChannelMaxError: rightError,
     outsideSupportMaxError: outsideError,
     sourceBytesUnchanged: true,

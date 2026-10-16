@@ -41,6 +41,9 @@ export class AudioEngine {
   private generation = 0;
   private playing = false;
   private source: SourceRef | null = null;
+  get currentSource() {
+    return this.source;
+  }
   private info: WavInfo | null = null;
   private session = '';
   private nextPosition = 0;
@@ -341,9 +344,22 @@ export class AudioEngine {
     this.worker.postMessage({ method: 'cancelExport' });
     if (isNative()) void invoke('cancel_export');
   }
-  async export(name: string, layers: Layer[], start: number, end: number, bits: number) {
+  async export(
+    name: string,
+    layers: Layer[],
+    start: number,
+    end: number,
+    bits: number,
+    mode: Monitor = 'result',
+  ) {
     if (!this.info || !this.source) throw new Error('Open an audio source first.');
-    const suggestedName = name.replace(/\.[^.]+$/, '') + '-tonalia.wav';
+    const suggestedName =
+      name.replace(/\.[^.]+$/, '') +
+      (mode === 'removed'
+        ? '-removed.wav'
+        : mode === 'original'
+          ? '-original.wav'
+          : '-tonalia.wav');
     if (isNative() && this.source.kind === 'native') {
       const path = await save({
         defaultPath: suggestedName,
@@ -352,7 +368,7 @@ export class AudioEngine {
       if (!path) return null;
       return invoke<{ frames: number; peak: number }>('export_audio', {
         id: this.source.id,
-        request: { path, layers, start: Math.floor(start), end: Math.floor(end), bits },
+        request: { path, layers, start: Math.floor(start), end: Math.floor(end), bits, mode },
       });
     }
     const picker = (window as PickerWindow).showSaveFilePicker;
@@ -398,6 +414,7 @@ export class AudioEngine {
         start,
         end,
         bits,
+        mode,
       });
       await this.writer.close();
       return result;

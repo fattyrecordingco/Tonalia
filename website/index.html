@@ -65,12 +65,12 @@
       <section class="hero page-width">
         <div class="hero-copy">
           <p class="release-note">
-            <span class="release-dot"></span> Tonalia 0.2.0 <span>Development release</span>
+            <span class="release-dot"></span> Tonalia 0.4.1 <span>Development release</span>
           </p>
           <h1>See your sound.<br />Keep your original.</h1>
           <p class="hero-description">
-            Find a sound in your recording and change just that part. Listen as you work, keep your
-            edits separate, and save a new WAV when you’re done.
+            Find, separate and clean up sounds in your recording. Paint precise spectral edits,
+            compare what you keep and remove, and export each result as a new WAV.
           </p>
           <div class="hero-actions">
             <a class="button button-primary" href="#download" data-primary-download
@@ -113,7 +113,9 @@
         <div class="section-intro">
           <div>
             <h2>Choose your computer.</h2>
-            <p>Download one installer. You won’t need any developer tools.</p>
+            <p>
+              Choose your installer. Optional desktop AI packs are set up inside Separate sounds.
+            </p>
           </div>
           <a class="text-link" href="guide/#install">Help me choose</a>
         </div>
@@ -129,7 +131,7 @@
             <p>Windows 11<br />Intel or AMD, 64-bit</p>
             <a
               class="download-button primary-download"
-              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_windows_x64_setup.exe"
+              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_windows_x64_setup.exe"
               ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path
                   d="M11 3h2v10l3-3 1.4 1.4L12 17l-5.4-5.6L8 10l3 3zM4 18h2v3h12v-3h2v5H4z"
@@ -151,7 +153,7 @@
             <p>macOS 13 or later<br />Choose the chip in your Mac.</p>
             <a
               class="download-button"
-              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_macos_apple_silicon.dmg"
+              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_macos_apple_silicon.dmg"
               ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path
                   d="M11 3h2v10l3-3 1.4 1.4L12 17l-5.4-5.6L8 10l3 3zM4 18h2v3h12v-3h2v5H4z"
@@ -159,7 +161,7 @@
               ><span>Apple Silicon (M-series)</span></a
             ><a
               class="download-button"
-              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_macos_intel.dmg"
+              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_macos_intel.dmg"
               ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path
                   d="M11 3h2v10l3-3 1.4 1.4L12 17l-5.4-5.6L8 10l3 3zM4 18h2v3h12v-3h2v5H4z"
@@ -179,7 +181,7 @@
             <p>64-bit Intel or AMD<br />Ubuntu / Debian, or AppImage.</p>
             <a
               class="download-button"
-              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_linux_amd64.deb"
+              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_linux_amd64.deb"
               ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path
                   d="M11 3h2v10l3-3 1.4 1.4L12 17l-5.4-5.6L8 10l3 3zM4 18h2v3h12v-3h2v5H4z"
@@ -187,7 +189,7 @@
               ><span>Ubuntu / Debian (.deb)</span></a
             ><a
               class="download-button"
-              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_linux_x86_64.AppImage"
+              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_linux_x86_64.AppImage"
               ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path
                   d="M11 3h2v10l3-3 1.4 1.4L12 17l-5.4-5.6L8 10l3 3zM4 18h2v3h12v-3h2v5H4z"
@@ -205,14 +207,51 @@
           </p>
           <p>
             <a
-              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/SHA256SUMS.txt"
+              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/SHA256SUMS.txt"
               >Download checksums</a
             ><span aria-hidden="true"> / </span
-            ><a href="https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.2.0"
+            ><a href="https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.4.1"
               >All release files</a
             >
           </p>
         </div>
+      </section>
+      <section class="feature-story page-width" id="separation">
+        <div class="story-copy">
+          <p class="eyebrow">New in the desktop app</p>
+          <h2>Find the sources.<br />Give them their own track.</h2>
+          <p>
+            Open <strong>Separate sounds → Auto separate</strong>. Tonalia analyses your recording,
+            detects likely sources and extracts WAV tracks with spectral cleanup to reduce bleed.
+            Music can be split into vocals, drums, bass, guitar, piano and other instruments.
+          </p>
+          <p>
+            <strong>Find sounds</strong> suggests what the analysis detects. Preview a track, open
+            it for closer editing or export it. Tiny clicks have their own transient tool;
+            unassigned audio stays in a residual track. Results are estimates: listen and compare.
+          </p>
+          <a class="text-link" href="guide/#separation">Set up local sound separation</a>
+        </div>
+        <figure class="screenshot">
+          <button
+            class="screenshot-button"
+            data-lightbox
+            aria-label="Enlarge screenshot: Tonalia separating detected speech and a ringing telephone"
+          >
+            <img
+              src="assets/screenshots/separation.png"
+              alt="Separate sounds showing analysis-detected speech and telephone bell tracks, with preview and export controls"
+              width="1600"
+              height="1000"
+              loading="lazy"
+            />
+            <span class="enlarge-hint">View full size</span>
+          </button>
+          <figcaption>
+            Real local analysis of a public reference clip. Optional AI packs need Python 3.11+ and
+            a one-time download; processing then stays on your computer.
+          </figcaption>
+        </figure>
       </section>
       <section class="feature-story page-width">
         <div class="story-copy">
@@ -222,8 +261,9 @@
             near the top. Brighter colours show stronger sounds.
           </p>
           <p>
-            Draw around a whistle, hum or other sound with a rectangle, lasso or brush. Turn it
-            down, listen, and adjust. Your change becomes a layer you can switch off later.
+            Zoom into a frequency region, then scroll or drag vertically to follow it. Paint with a
+            continuous brush and adjustable size, opacity and hardness. Each edit stays in a layer
+            you can switch off later.
           </p>
           <a class="text-link" href="guide/#first-edit">Make your first edit</a>
         </div>
@@ -273,8 +313,9 @@
             <strong>Removed</strong> to hear what your edit is taking away.
           </p>
           <p>
-            Save a project to keep your editable layers. Export a WAV to share the finished audio.
-            Keep the original recording alongside your project.
+            Export <strong>Result</strong> for the cleaned recording and <strong>Removed</strong>
+            for the spectral material you took away. Save a project too, so your layers stay
+            editable. Keep the original WAV alongside it.
           </p>
           <a class="text-link" href="guide/#save-export">Saving and exporting explained</a>
         </div>
@@ -287,13 +328,14 @@
           ></span>
           <h2>Try an edit<br />before you install.</h2>
           <p>
-            The browser editor can open a local WAV, make selections, add reversible edits, play the
-            result and export a new file. Your recording is processed on your computer.
+            Drop a WAV into the browser editor, zoom and scroll through its spectrum, paint a layer
+            or capture a noise profile. Compare and export Original, Result or Removed. Your
+            recording is processed on your computer.
           </p>
           <a class="button button-primary" href="app/">Open browser editor</a>
           <p class="caption">
             Use a computer-sized window. You need a connection to load the editor; install Tonalia
-            for offline use. Local-network sharing is available in the desktop app.
+            for offline use. AI sound separation and local-network sharing require the desktop app.
           </p>
         </div>
         <div class="practice-steps">
@@ -319,6 +361,7 @@
         <a class="button button-secondary" href="guide/">Read the illustrated guide</a>
         <div class="guide-topics">
           <a href="guide/#workspace">Know the workspace</a
+          ><a href="guide/#separation">Separate sounds</a
           ><a href="guide/#restoration">Clean up a recording</a
           ><a href="guide/#shortcuts">Keyboard and zoom</a
           ><a href="guide/#troubleshooting">Something not working?</a>
@@ -327,9 +370,9 @@
       <section class="honest-note page-width">
         <h2>What this version does.</h2>
         <p>
-          Tonalia 0.2.0 edits mono and stereo WAV recordings. It includes frequency selections,
-          reversible volume changes, initial clean-up tools, offline speech denoising and
-          experimental sharing on a local network.
+          Tonalia 0.4.1 edits mono and stereo WAV recordings. It adds automatic sound discovery and
+          separated WAV tracks on desktop, captured noise profiles, precise frequency navigation,
+          improved brush performance and separate Removed-signal export.
         </p>
         <p>
           It doesn’t yet open MP3s, record audio, host plug-ins or provide a full multitrack
@@ -360,13 +403,13 @@
       </div>
       <nav aria-label="Footer">
         <a href="guide/">User guide</a
-        ><a href="https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.2.0">Release notes</a
+        ><a href="https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.4.1">Release notes</a
         ><a href="https://github.com/fattyrecordingco/Tonalia/issues">Report a problem</a
         ><a href="app/licenses/THIRD-PARTY.txt">Licences</a
         ><a href="https://github.com/fattyrecordingco/Tonalia">Source code</a>
       </nav>
       <p class="footer-note">
-        Version 0.2.0 is a development release. Check a copy of an important recording before using
+        Version 0.4.1 is a development release. Check a copy of an important recording before using
         it for a finished job.
       </p>
     </footer>

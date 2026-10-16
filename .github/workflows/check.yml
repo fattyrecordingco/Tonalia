@@ -19,6 +19,7 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - run: npm ci
+      - run: npm run test:audio
       - run: cargo fmt --all --check
       - run: cargo test -p tonalia-core
       - run: npm run build

@@ -60,6 +60,63 @@ pub struct PlayRequest {
     pub volume: f32,
     pub looping: bool,
 }
+// The callback never renders, allocates, or takes a lock. A short empty queue
+// emits silence and freezes the source clock until the same queued audio resumes.
+// Device/render failures and a sustained two-second stall still stop playback.
+fn write_output<T: SizedSample + FromSample<f32>>(
+    data: &mut [T],
+    out_channels: usize,
+    source_channels: usize,
+    sample_rate: u32,
+    consumer: &mut Consumer<[f32; 2]>,
+    ctrl: &Playback,
+    starved_frames: &mut u64,
+) {
+    let volume = f32::from_bits(ctrl.volume.load(Ordering::Relaxed));
+    let mut consumed = 0;
+    let mut missed = false;
+    for frame in data.chunks_mut(out_channels) {
+        let pair = if ctrl.stop.load(Ordering::Relaxed) {
+            [0.0, 0.0]
+        } else {
+            match consumer.pop() {
+                Ok(f) => {
+                    consumed += 1;
+                    *starved_frames = 0;
+                    f
+                }
+                Err(_) => {
+                    if !ctrl.finished.load(Ordering::Acquire) {
+                        missed = true;
+                        *starved_frames += 1;
+                        if *starved_frames >= u64::from(sample_rate) * 2 {
+                            ctrl.failed.store(true, Ordering::Release);
+                        }
+                    }
+                    [0.0, 0.0]
+                }
+            }
+        };
+        for (c, out) in frame.iter_mut().enumerate() {
+            let sample = if out_channels == 1 {
+                if source_channels == 1 {
+                    pair[0]
+                } else {
+                    (pair[0] + pair[1]) * 0.5
+                }
+            } else if c < 2 {
+                pair[c]
+            } else {
+                0.0
+            };
+            *out = T::from_sample(sample * volume);
+        }
+    }
+    ctrl.consumed.fetch_add(consumed, Ordering::Relaxed);
+    if missed {
+        ctrl.underruns.fetch_add(1, Ordering::Relaxed);
+    }
+}
 fn stream<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
@@ -71,51 +128,22 @@ where
     T: SizedSample + FromSample<f32>,
 {
     let out_channels = config.channels as usize;
+    let sample_rate = config.sample_rate;
     let failure = ctrl.clone();
+    let mut starved_frames = 0;
     device
         .build_output_stream(
             config.clone(),
             move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
-                let volume = f32::from_bits(ctrl.volume.load(Ordering::Relaxed));
-                let mut consumed = 0;
-                let mut missed = false;
-                for frame in data.chunks_mut(out_channels) {
-                    let pair = if ctrl.stop.load(Ordering::Relaxed) {
-                        [0.0, 0.0]
-                    } else {
-                        match consumer.pop() {
-                            Ok(f) => {
-                                consumed += 1;
-                                f
-                            }
-                            Err(_) => {
-                                if !ctrl.finished.load(Ordering::Acquire) {
-                                    missed = true;
-                                }
-                                [0.0, 0.0]
-                            }
-                        }
-                    };
-                    for (c, out) in frame.iter_mut().enumerate() {
-                        let sample = if out_channels == 1 {
-                            if source_channels == 1 {
-                                pair[0]
-                            } else {
-                                (pair[0] + pair[1]) * 0.5
-                            }
-                        } else if c < 2 {
-                            pair[c]
-                        } else {
-                            0.0
-                        };
-                        *out = T::from_sample(sample * volume);
-                    }
-                }
-                ctrl.consumed.fetch_add(consumed, Ordering::Relaxed);
-                if missed {
-                    ctrl.underruns.fetch_add(1, Ordering::Relaxed);
-                    ctrl.failed.store(true, Ordering::Release);
-                }
+                write_output(
+                    data,
+                    out_channels,
+                    source_channels,
+                    sample_rate,
+                    &mut consumer,
+                    &ctrl,
+                    &mut starved_frames,
+                );
             },
             move |_| {
                 failure.failed.store(true, Ordering::Release);
@@ -151,7 +179,8 @@ pub fn start(
                 channels: config.channels,
                 backend: format!("{}", host.id().name()),
             };
-            let (mut producer, consumer) = RingBuffer::<[f32; 2]>::new(32768);
+            let (mut producer, consumer) =
+                RingBuffer::<[f32; 2]>::new((rate as usize * 2).max(32768));
             let producer_ctrl = ctrl.clone();
             let input = source.clone();
             let req = request.clone();
@@ -224,7 +253,7 @@ pub fn start(
             });
             // Prefill outside the device callback. The UI receives a real error if rendering cannot keep up.
             let deadline = Instant::now() + Duration::from_secs(10);
-            while consumer.slots() < 8192
+            while consumer.slots() < (rate as usize / 2).max(8192)
                 && !ctrl.finished.load(Ordering::Acquire)
                 && !ctrl.failed.load(Ordering::Acquire)
             {
@@ -316,4 +345,53 @@ pub fn start(
     receive
         .recv_timeout(Duration::from_secs(14))
         .map_err(|_| "Audio output did not initialize in time".to_string())?
+}
+
+#[cfg(test)]
+mod queue_tests {
+    use super::*;
+    #[test]
+    fn brief_starvation_recovers_without_skipping_source_frames() {
+        let (mut producer, mut consumer) = RingBuffer::new(8);
+        let ctrl = Playback::new(1.0);
+        let mut starved = 0;
+        producer.push([0.2, -0.2]).unwrap();
+        let mut first = [0f32; 8];
+        write_output(&mut first, 2, 2, 48000, &mut consumer, &ctrl, &mut starved);
+        assert_eq!(&first[..2], &[0.2, -0.2]);
+        assert_eq!(&first[2..], &[0.; 6]);
+        assert!(!ctrl.failed.load(Ordering::Relaxed));
+        assert_eq!(ctrl.consumed.load(Ordering::Relaxed), 1);
+        producer.push([0.4, -0.4]).unwrap();
+        let mut resumed = [0f32; 2];
+        write_output(
+            &mut resumed,
+            2,
+            2,
+            48000,
+            &mut consumer,
+            &ctrl,
+            &mut starved,
+        );
+        assert_eq!(resumed, [0.4, -0.4]);
+        assert_eq!(starved, 0);
+        assert_eq!(ctrl.consumed.load(Ordering::Relaxed), 2);
+        assert_eq!(ctrl.underruns.load(Ordering::Relaxed), 1);
+        assert!(!ctrl.failed.load(Ordering::Relaxed));
+    }
+    #[test]
+    fn prolonged_stall_stops_but_completed_audio_is_not_an_underrun() {
+        let (_producer, mut consumer) = RingBuffer::new(8);
+        let ctrl = Playback::new(1.0);
+        let mut starved = 0;
+        let mut output = vec![0f32; 48000 * 2 * 2];
+        write_output(&mut output, 2, 2, 48000, &mut consumer, &ctrl, &mut starved);
+        assert!(ctrl.failed.load(Ordering::Relaxed));
+        assert_eq!(ctrl.consumed.load(Ordering::Relaxed), 0);
+        let complete = Playback::new(1.0);
+        complete.finished.store(true, Ordering::Relaxed);
+        write_output(&mut output, 2, 2, 48000, &mut consumer, &complete, &mut 0);
+        assert!(!complete.failed.load(Ordering::Relaxed));
+        assert_eq!(complete.underruns.load(Ordering::Relaxed), 0);
+    }
 }

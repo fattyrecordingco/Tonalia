@@ -1,25 +1,39 @@
-Tonalia 0.2.0 is the first downloadable development release from Fatty Recording Co.
+Tonalia 0.4.1 adds local sound separation, more precise spectral editing, and a fix for brush edits interrupting playback.
 
-Open local mono/stereo WAV/RF64, inspect calibrated spectra and waveforms, draw rectangle/lasso/brush selections, apply reversible spectral gain layers, compare Original/Result/Removed, save editable projects and export new float WAV files. Source audio is preserved. All editing and analysis run locally and work without an internet connection after installation.
+### Brush playback fix
 
-### Download the correct installer
+Dense strokes previously evaluated every stroke segment for every FFT bin and channel, which could starve the audio render queue. The engine now visits only the bins a stroke can affect, shares the mask across channels and skips untouched frames. Stroke geometry and older saved-brush behavior are preserved. Desktop playback has more preparation headroom; desktop and browser playback recover brief queue gaps without advancing past unplayed samples. Device errors and sustained stalls still stop with an error.
 
-| Computer | Direct download |
+### Editing features
+
+- Continuous brushes with adjustable size, opacity and hardness, plus a live footprint preview.
+- Independent frequency zoom, vertical pan buttons, Hz-ruler scrolling, a vertical range slider and exact frequency bounds. Display FFT sizes extend to 16,384 samples.
+- Captured noise profiles and reversible per-channel noise reduction in Restore.
+- WAV drag and drop in the desktop and browser editor.
+- Export **Result**, **Removed**, or **Original** at the source rate/channel count. Removed matches the original-minus-result monitor signal; export it separately from the cleaned recording.
+
+### Separate sounds — desktop
+
+Open a WAV and choose **Separate sounds → Auto separate → Analyse and separate**. Optional local PANNs, AudioSep and HT-Demucs packs detect likely sources and produce separate WAV estimates with joint spectral cleanup and an unassigned residual. **Find sounds** shows actual detector results and supports direct extraction. Music can be split into vocals, drums, bass, guitar, piano and other instruments. Manual descriptions and spectral transient extraction are also available. Preview, edit or export the generated tracks.
+
+Python 3.11+ and a one-time download are required for these optional packs (about 1.1 GiB of model assets, plus dependencies). They run on your computer after setup; recordings are not uploaded. Detection can miss small or unfamiliar sounds; a transient is not guaranteed to be identified as the object that made it. Separation is an estimate and can leave bleed. Keep and inspect the residual. AI separation requires the desktop app; the browser includes the spectral editing, noise reduction and export improvements.
+
+### Downloads
+
+| Computer | Installer |
 | --- | --- |
-| Windows 11 x64 (Intel/AMD) | [Windows setup.exe](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_windows_x64_setup.exe) |
-| Mac Apple Silicon, macOS 13+ | [Apple Silicon DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_macos_apple_silicon.dmg) |
-| Mac Intel, macOS 13+ | [Intel DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_macos_intel.dmg) |
-| Linux x86-64, Ubuntu 22.04+/compatible Debian | [Debian package](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_linux_amd64.deb) |
-| Other compatible Linux x86-64 desktops | [AppImage](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_linux_x86_64.AppImage) |
+| Windows 11 x64 | [Windows setup.exe](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_windows_x64_setup.exe) |
+| Mac Apple Silicon, macOS 13+ | [Apple Silicon DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_macos_apple_silicon.dmg) |
+| Mac Intel, macOS 13+ | [Intel DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_macos_intel.dmg) |
+| Linux x86-64, Ubuntu 22.04+/compatible Debian | [Debian package](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_linux_amd64.deb) |
+| Compatible Linux x86-64 desktop | [AppImage](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_linux_x86_64.AppImage) |
 
-[Installation and offline-use instructions](https://github.com/fattyrecordingco/Tonalia/blob/main/docs/INSTALL.md) · [SHA-256 checksums](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/SHA256SUMS.txt)
+[Website and browser editor](https://fattyrecordingco.github.io/Tonalia/) · [Illustrated guide](https://fattyrecordingco.github.io/Tonalia/guide/) · [Installation instructions](https://github.com/fattyrecordingco/Tonalia/blob/main/docs/INSTALL.md) · [SHA-256 checksums](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/SHA256SUMS.txt)
 
-Windows: run setup; the WebView2 offline installer is included. Mac: open the correct DMG and drag Tonalia into Applications. Linux: install the `.deb` through the package manager, or make the AppImage executable. Linux system prerequisites may need to be installed first.
+Save your project and close Tonalia before upgrading. Run the installer to update the installed app and shortcuts. Schema 1 and 2 projects remain readable after verifying the original WAV. Generated AI tracks are separate audio files; export them before clearing the AI cache.
 
-**Signing:** this is an unsigned Windows / ad-hoc-signed, unnotarized Mac development release. OS confirmation prompts are expected. See the installation guide for platform-specific instructions; managed devices may prohibit these builds.
+### Verification and limits
 
-**New in 0.2:** keyboard guide and expanded shortcuts; mouse-wheel and trackpad pinch zoom, pointer-anchored frequency zoom and horizontal pan; initial spectral gating, harmonic hum attenuation, short-click interpolation, included offline neural speech denoising (48 kHz); local recovery history; optional experimental LAN co-editing with source identity checks and rejected-conflict recovery. New schema 2 projects preserve restoration layers; schema 1 projects remain readable.
+The release workflow runs core numerical tests, desktop tests, browser integration checks and actual package installation/DSP diagnostics before publishing the assets. Per-platform verification reports accompany the installers. The source includes dense-brush playback tests and real-model separation contracts. See the [0.4.1 verification record](https://github.com/fattyrecordingco/Tonalia/blob/main/docs/implementation/RELEASE-0.4.1.md) for measured results and scope.
 
-**Verification:** the release workflow runs numerical, native LAN-protocol and browser tests before packaging. Every packaged app is installed and runs analysis, gain, gate and the included neural model; per-platform reports are attached. Mac/Linux package diagnostics apply outbound network restrictions. The public Windows installer was also installed on the owner machine, with native Open/Export/Save dialogs, CPAL playback, measured source-preserving editing, gate/neural exports and two native co-editing processes checked with outbound WebView internet blocked. Public Debian and FUSE AppImage downloads passed on Ubuntu 24.04/WSL2 with no internet interface. Owner-machine reports are attached. Physical audio latency, cross-machine LAN, hardware trackpads and the full professional roadmap are not qualified by these checks.
-
-**Scope and limits:** this is development software, not verified Audition parity or a feature-complete professional editor. Gate/hum processing has fixed FFT resolution, interpolation targets short clicks, and the speech model can alter desired material. LAN sessions use unencrypted HTTP on trusted private networks, with serialized revisions and no shared undo. Local recovery depends on app storage. [Algorithm details and remaining work](https://github.com/fattyrecordingco/Tonalia/blob/main/docs/implementation/RELEASE-0.2.md). Keep original WAVs and explicit project backups.
+This remains a development release: Windows is unsigned and Mac packages are not notarized. It opens mono/stereo WAV/RF64 and exports float WAV; there is no multitrack timeline, MP3 import, recording, plug-in hosting or guaranteed Audition parity. Display detail is independent of the fixed 2048-point processing FFT. Existing 48 kHz neural speech denoise and experimental trusted-LAN co-editing remain available with their earlier limits.

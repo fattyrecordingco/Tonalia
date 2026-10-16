@@ -84,8 +84,8 @@
           <a href="#install">Install Tonalia</a><a href="#first-edit">Your first edit</a
           ><a href="#workspace">Find your way around</a><a href="#selections">Select a sound</a
           ><a href="#layers">Work with layers</a><a href="#restoration">Clean up a recording</a
-          ><a href="#listen">Play and compare</a><a href="#save-export">Save and export</a
-          ><a href="#analysis">Check your recording</a
+          ><a href="#separation">Separate sounds</a><a href="#listen">Play and compare</a
+          ><a href="#save-export">Save and export</a><a href="#analysis">Check your recording</a
           ><a href="#shortcuts">Keys, mouse and trackpad</a
           ><a href="#sharing">Edit with someone else</a><a href="#offline">Use Tonalia offline</a
           ><a href="#limits">What to expect</a><a href="#troubleshooting">Fix a problem</a>
@@ -94,7 +94,7 @@
       </aside>
       <article class="guide-content" id="guide-content">
         <header class="guide-title">
-          <p class="guide-byline">Tonalia 0.2.0 · Fatty Recording Co</p>
+          <p class="guide-byline">Tonalia 0.4.1 · Fatty Recording Co</p>
           <h1>From first launch<br />to finished audio.</h1>
           <p>
             Start here if you’re new to Tonalia. The screenshots use a built-in practice recording,
@@ -132,7 +132,7 @@
               <li>
                 <a
                   class="download-button"
-                  href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_windows_x64_setup.exe"
+                  href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_windows_x64_setup.exe"
                   ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path
                       d="M11 3h2v10l3-3 1.4 1.4L12 17l-5.4-5.6L8 10l3 3zM4 18h2v3h12v-3h2v5H4z"
@@ -187,14 +187,14 @@
               <p>
                 To check a download, get
                 <a
-                  href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/SHA256SUMS.txt"
+                  href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/SHA256SUMS.txt"
                   >the checksum list</a
                 >
                 and compare the number for your file with this PowerShell command. A matching number
                 means the file matches this release.
               </p>
               <div class="command">
-                <pre><code>Get-FileHash .\Tonalia_0.2.0_windows_x64_setup.exe -Algorithm SHA256</code></pre>
+                <pre><code>Get-FileHash .\Tonalia_0.4.1_windows_x64_setup.exe -Algorithm SHA256</code></pre>
                 <button data-copy aria-label="Copy command">Copy</button>
               </div>
             </details>
@@ -209,7 +209,7 @@
             <div class="inline-downloads">
               <a
                 class="download-button"
-                href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_macos_apple_silicon.dmg"
+                href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_macos_apple_silicon.dmg"
                 ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path
                     d="M11 3h2v10l3-3 1.4 1.4L12 17l-5.4-5.6L8 10l3 3zM4 18h2v3h12v-3h2v5H4z"
@@ -217,7 +217,7 @@
                 ><span>Download for Apple Silicon</span></a
               ><a
                 class="download-button"
-                href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_macos_intel.dmg"
+                href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_macos_intel.dmg"
                 ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path
                     d="M11 3h2v10l3-3 1.4 1.4L12 17l-5.4-5.6L8 10l3 3zM4 18h2v3h12v-3h2v5H4z"
@@ -255,12 +255,12 @@
                 Delete Tonalia from Applications to uninstall. Keep your recordings and project
                 files. To check the Apple Silicon download against
                 <a
-                  href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/SHA256SUMS.txt"
+                  href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/SHA256SUMS.txt"
                   >the checksum list</a
                 >, use Terminal:
               </p>
               <div class="command">
-                <pre><code>shasum -a 256 Tonalia_0.2.0_macos_apple_silicon.dmg</code></pre>
+                <pre><code>shasum -a 256 Tonalia_0.4.1_macos_apple_silicon.dmg</code></pre>
                 <button data-copy aria-label="Copy command">Copy</button>
               </div>
               <p>For an Intel Mac, use the Intel filename instead.</p>
@@ -280,7 +280,7 @@
             </p>
             <a
               class="download-button"
-              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_linux_amd64.deb"
+              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_linux_amd64.deb"
               ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path
                   d="M11 3h2v10l3-3 1.4 1.4L12 17l-5.4-5.6L8 10l3 3zM4 18h2v3h12v-3h2v5H4z"
@@ -289,7 +289,7 @@
             >
             <p>Open a terminal in the folder containing the download and run:</p>
             <div class="command">
-              <pre><code>sudo apt install ./Tonalia_0.2.0_linux_amd64.deb</code></pre>
+              <pre><code>sudo apt install ./Tonalia_0.4.1_linux_amd64.deb</code></pre>
               <button data-copy aria-label="Copy command">Copy</button>
             </div>
             <p>
@@ -300,7 +300,7 @@
             <h4>AppImage</h4>
             <a
               class="download-button"
-              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/Tonalia_0.2.0_linux_x86_64.AppImage"
+              href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_linux_x86_64.AppImage"
               ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path
                   d="M11 3h2v10l3-3 1.4 1.4L12 17l-5.4-5.6L8 10l3 3zM4 18h2v3h12v-3h2v5H4z"
@@ -309,13 +309,13 @@
             >
             <p>In the download folder, make it runnable and open it:</p>
             <div class="command">
-              <pre><code>chmod +x Tonalia_0.2.0_linux_x86_64.AppImage
-./Tonalia_0.2.0_linux_x86_64.AppImage</code></pre>
+              <pre><code>chmod +x Tonalia_0.4.1_linux_x86_64.AppImage
+./Tonalia_0.4.1_linux_x86_64.AppImage</code></pre>
               <button data-copy aria-label="Copy command">Copy</button>
             </div>
             <p>If it reports a FUSE error, try:</p>
             <div class="command">
-              <pre><code>./Tonalia_0.2.0_linux_x86_64.AppImage --appimage-extract-and-run</code></pre>
+              <pre><code>./Tonalia_0.4.1_linux_x86_64.AppImage --appimage-extract-and-run</code></pre>
               <button data-copy aria-label="Copy command">Copy</button>
             </div>
             <p>
@@ -328,13 +328,13 @@
                 Remove the Debian package with <code>sudo apt remove tonalia</code>, or delete the
                 AppImage. Check the Debian package against
                 <a
-                  href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.2.0/SHA256SUMS.txt"
+                  href="https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/SHA256SUMS.txt"
                   >the checksum list</a
                 >
                 with:
               </p>
               <div class="command">
-                <pre><code>sha256sum Tonalia_0.2.0_linux_amd64.deb</code></pre>
+                <pre><code>sha256sum Tonalia_0.4.1_linux_amd64.deb</code></pre>
                 <button data-copy aria-label="Copy command">Copy</button>
               </div>
             </details>
@@ -534,9 +534,13 @@
           class="guide-section"
           id="selections"
           data-guide-section
-          data-keywords="rectangle time lasso brush selection feather opacity channels clear"
+          data-keywords="rectangle time lasso brush selection feather opacity hardness channels clear vertical zoom pan scroll frequency"
         >
           <h2>Select the part you want to change</h2>
+          <p>
+            Drop a mono or stereo WAV into the editor to open it, or choose
+            <strong>Open WAV</strong>. Save any current project before replacing its source.
+          </p>
           <div class="table-scroll">
             <table>
               <caption>
@@ -568,12 +572,17 @@
                 <tr>
                   <th>Spectral brush <kbd>B</kbd></th>
                   <td>A narrow trail or a few scattered spots.</td>
-                  <td>Paint over the sound. Adjust brush size and opacity in the toolbar.</td>
+                  <td>
+                    Paint over the sound. Adjust size, opacity and hardness in the toolbar. The live
+                    outline shows its footprint.
+                  </td>
                 </tr>
                 <tr>
                   <th>Pan canvas <kbd>H</kbd></th>
                   <td>Moving around without drawing a selection.</td>
-                  <td>Drag the view. You can also drag with the middle mouse button.</td>
+                  <td>
+                    Drag horizontally or vertically. You can also drag with the middle mouse button.
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -588,6 +597,18 @@
             an edit. Larger values make a more gradual transition. Brush strokes have their own soft
             edges. A change can reach slightly beyond the drawn edge because sound analysis uses
             short overlapping slices.
+          </p>
+          <p>
+            Zoom with the <strong>Hz</strong> buttons above the spectrum. Use the up/down arrows,
+            the frequency slider on its right edge, or scroll over the Hz ruler to move vertically.
+            <strong>Alt + Shift + scroll</strong> also pans frequency. In Display, set
+            <strong>View low frequency</strong> and <strong>View high frequency</strong> for exact
+            limits.
+          </p>
+          <p>
+            New brush strokes are continuous: fast movements leave no gaps and repeated pointer
+            events do not build up opacity. <strong>Hardness</strong> sets how sharply the brush
+            edge falls away. Older saved strokes keep their original shape and opacity.
           </p>
           <p>
             Press <strong>Escape</strong> to clear the selection. Use <strong>Channels</strong> to
@@ -672,6 +693,26 @@
             </figcaption>
           </figure>
           <div class="tool-notes">
+            <h3>Noise reduction: learn a noise profile</h3>
+            <ol>
+              <li>Select a passage containing only the noise, from 2048 samples to 10 seconds.</li>
+              <li>
+                Choose <strong>Noise reduction (captured profile)</strong> and
+                <strong>Capture noise profile</strong>. The profile is measured from the original,
+                separately for each channel.
+              </li>
+              <li>
+                Select the audio to clean, or choose <strong>Select entire recording</strong>.
+              </li>
+              <li>
+                Adjust <strong>Noise sensitivity</strong> and <strong>Maximum reduction</strong>,
+                then choose <strong>Create restoration layer</strong>.
+              </li>
+            </ol>
+            <p>
+              Compare Result and Removed. This works best for steady noise; a profile containing
+              wanted sound can remove it too. The profile is saved with the layer.
+            </p>
             <h3>Spectral gate: reduce quiet background sound</h3>
             <p>
               Choose <strong>Spectral gate</strong>. <strong>Gate threshold</strong> sets the level
@@ -706,6 +747,91 @@
               channels separately. Listen before keeping the result.
             </p>
           </div>
+        </section>
+        <section
+          class="guide-section"
+          id="separation"
+          data-guide-section
+          data-keywords="ai separate separation split stems instrument music voice speech bird clicks transient model python identify detection sources cleanup residual"
+        >
+          <h2>Separate sounds into WAV tracks</h2>
+          <p>
+            This workspace requires the <strong>installed desktop app</strong>. Open a WAV and
+            choose <strong>Separate sounds</strong> in the top bar. The browser editor provides
+            spectral editing and noise reduction, but cannot run these optional AI packs.
+          </p>
+          <h3>Set up once</h3>
+          <p>
+            Install Python 3.11 or later if it is missing, reopen Tonalia, then use
+            <strong>Install AI pack</strong> in the separation window. Tonalia creates its own
+            environment and downloads the selected models. The three packs contain about 1.1 GiB of
+            model assets in total, plus Python dependencies. Setup needs internet and disk space;
+            later inference runs locally. Your recording is not uploaded.
+          </p>
+          <h3>Let the analysis choose</h3>
+          <ol>
+            <li>
+              Choose <strong>Auto separate</strong> and set the time range you want to analyse.
+            </li>
+            <li>
+              Choose <strong>Analyse and separate</strong>. Detection identifies likely sources;
+              music is routed to instrument separation and other sounds to targeted extraction.
+            </li>
+            <li>
+              Use <strong>Preview</strong> to listen to each generated track. Spectral cleanup
+              reduces shared energy and bleed. The residual retains unassigned audio.
+            </li>
+            <li>
+              Open a track in the editor to refine it, or export the tracks into a new folder.
+            </li>
+          </ol>
+          <figure class="screenshot">
+            <button
+              class="screenshot-button"
+              data-lightbox
+              aria-label="Enlarge screenshot: automatic source separation results"
+            >
+              <img
+                src="../assets/screenshots/separation.png"
+                alt="Speech, telephone bell and residual tracks from real local analysis"
+                width="1600"
+                height="1000"
+                loading="lazy"
+              />
+              <span class="enlarge-hint">View full size</span>
+            </button>
+            <figcaption>
+              Detected sources become audio tracks you can preview, edit and export.
+            </figcaption>
+          </figure>
+          <h3>Choose a more specific tool</h3>
+          <ul>
+            <li>
+              <strong>Find sounds:</strong> analyse the recording for suggestions. Choose
+              <strong>Extract</strong> to create audio for a detected source.
+              <strong>Inspect region</strong> only moves the spectral view.
+            </li>
+            <li>
+              <strong>Music stems:</strong> split vocals, drums, bass, guitar, piano and other
+              instruments. An absent instrument may produce a nearly silent track.
+            </li>
+            <li>
+              <strong>Isolate a sound:</strong> enter up to eight descriptions for targeted
+              extraction. Suggestions are measured detector results, not example presets.
+            </li>
+            <li>
+              <strong>Tiny clicks:</strong> find brief transients and extract their spectral energy,
+              keeping continuous background sound in the residual.
+            </li>
+          </ul>
+          <p>
+            Detection scores are model estimates, not guarantees. Raise the minimum score to reject
+            weaker suggestions; quiet or unfamiliar sounds can be missed. A lighter click may be
+            found as a transient without being identified as a lighter. Separation can leave bleed
+            or remove desired detail. Keep the residual and compare with the original. These are
+            separate WAV files, not a multitrack timeline. Processing is limited to ten minutes per
+            job.
+          </p>
         </section>
         <section
           class="guide-section"
@@ -749,7 +875,7 @@
           class="guide-section"
           id="save-export"
           data-guide-section
-          data-keywords="save project export wav precision 32 64 float reopen relink original json history recover recovery backup"
+          data-keywords="save project export wav precision 32 64 float reopen relink original removed result layers json history recover recovery backup"
         >
           <h2>Save a project. Export a WAV.</h2>
           <p>
@@ -772,12 +898,12 @@
             <div>
               <h3>Export audio</h3>
               <p>
-                Makes a new WAV with your enabled edits applied. Use this file for listening
-                elsewhere or sharing.
+                Makes a new WAV of the <strong>Result</strong>, <strong>Removed</strong> difference,
+                or <strong>Original</strong>. The Signal menu defaults to your monitor mode.
               </p>
               <p>
-                Choose <strong>Export audio</strong>, pick a range and precision, then choose
-                <strong>Export WAV</strong>. Use a new filename.
+                Choose <strong>Export audio</strong>, pick a signal, range and precision, then
+                choose <strong>Export WAV</strong>. Use a new filename.
               </p>
             </div>
           </div>
@@ -800,6 +926,15 @@
               full pitch range.
             </figcaption>
           </figure>
+          <h3>Export just what the layers removed</h3>
+          <p>
+            Attenuate the material with a layer, choose <strong>Removed</strong> and export it.
+            Export <strong>Result</strong> separately to keep the cleaned recording. Removed is
+            original minus the complete enabled layer stack, including gains and feathering. Bypass
+            other layers to export one layer’s difference. At partial attenuation it contains the
+            attenuated amount, not the whole sound inside the outline. At 64-bit precision, Result
+            plus Removed reconstructs the decoded original to floating-point precision.
+          </p>
           <h3>Which export setting?</h3>
           <p>
             <strong>32-bit float WAV</strong> is a sensible starting point if the next app supports
@@ -909,9 +1044,10 @@
             </div>
           </dl>
           <p>
-            <strong>Analysis FFT</strong> changes the detail of the picture. Larger values separate
-            close frequencies more clearly but blur fast changes in time. Changing this setting, the
-            frequency scale or display brightness doesn’t change the audio edit.
+            <strong>Analysis FFT</strong> changes the detail of the picture, up to 16,384 samples.
+            Larger values separate close frequencies more clearly but blur fast changes in time.
+            Changing this setting, the frequency scale or display brightness doesn’t change the
+            audio edit.
           </p>
         </section>
         <section
@@ -925,7 +1061,8 @@
             Scroll over the sound picture to zoom around the pointer. Pinch on a trackpad to zoom
             too. Hold <strong>Shift</strong> while scrolling to move through time; a horizontal
             trackpad scroll does the same. Hold <strong>Alt</strong> while scrolling to zoom the
-            frequency range.
+            frequency range. Scroll over the Hz ruler, use the right-edge slider, or hold
+            <strong>Alt + Shift</strong> while scrolling to pan vertically after zooming.
           </p>
           <p>
             On a Mac use <strong>Command (⌘)</strong> where Windows and Linux use
@@ -1090,7 +1227,7 @@
           <p>
             Edits update after the host accepts them. If two people change the same revision at
             once, Tonalia keeps the accepted change and offers the rejected proposal as a download
-            for manual recovery. In 0.2, rename that downloaded <strong>.tonalia</strong> file to
+            for manual recovery. If its name ends in <strong>.tonalia</strong>, rename it to
             <strong>.tonalia.json</strong> before using Open project.
           </p>
           <p>
@@ -1114,8 +1251,10 @@
           <h2>Use Tonalia offline</h2>
           <p>
             The installed app works without an internet connection. There’s no account, activation
-            step or separate speech-model download. Download the installer first and finish
-            installing any needed system components.
+            step for editing. Download the installer first and finish installing needed system
+            components. Optional sound-separation packs need a one-time online setup; once
+            installed, those models also run locally. The included 48 kHz speech denoiser needs no
+            extra model download.
           </p>
           <ol>
             <li>
@@ -1137,7 +1276,7 @@
           data-guide-section
           data-keywords="limits supported formats mp3 aac rf64 wav multitrack recording plugins asio devices channels browser"
         >
-          <h2>What to expect from 0.2</h2>
+          <h2>What to expect from 0.4.1</h2>
           <p>
             This is a working development release. Keep original files and test an edit before using
             it for a finished job.
@@ -1153,8 +1292,8 @@
             </li>
             <li>
               <strong>Clean-up:</strong> initial gate, hum, short-click and speech tools. Advanced
-              healing, declipping, captured noise profiles and automatic room-echo removal aren’t
-              implemented.
+              healing, declipping and automatic room-echo removal aren’t implemented. Captured noise
+              profiles are available; adaptive noise tracking is not.
             </li>
             <li>
               <strong>Workflow:</strong> one recording per project, up to 64 layers. There’s no
@@ -1177,7 +1316,7 @@
           <p>
             <a
               href="https://github.com/fattyrecordingco/Tonalia/blob/main/docs/implementation/RELEASE-0.2.md"
-              >Read the full current feature record</a
+              >Read the earlier editing engine details</a
             >. Tonalia does not claim complete Adobe Audition feature parity.
           </p>
         </section>
@@ -1256,9 +1395,10 @@
           <details>
             <summary>The app is slow or playback breaks up.</summary>
             <p>
-              Stop playback while changing layers. Switch off layers you don’t need, reduce the
-              analysis detail, or install the desktop app. Speech clean-up can need more preparation
-              time. Close other busy audio apps and try a shorter selection.
+              Version 0.4.1 evaluates dense brush strokes more efficiently and recovers brief render
+              queue gaps. A device failure or a sustained stall still stops playback with an error.
+              Check your default audio device, close other busy audio apps and reduce analysis
+              detail if needed. Speech clean-up and separation can take preparation time.
             </p>
           </details>
           <details>
@@ -1317,13 +1457,13 @@
       </div>
       <nav aria-label="Footer">
         <a href="../guide/">User guide</a
-        ><a href="https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.2.0">Release notes</a
+        ><a href="https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.4.1">Release notes</a
         ><a href="https://github.com/fattyrecordingco/Tonalia/issues">Report a problem</a
         ><a href="../app/licenses/THIRD-PARTY.txt">Licences</a
         ><a href="https://github.com/fattyrecordingco/Tonalia">Source code</a>
       </nav>
       <p class="footer-note">
-        Version 0.2.0 is a development release. Check a copy of an important recording before using
+        Version 0.4.1 is a development release. Check a copy of an important recording before using
         it for a finished job.
       </p>
     </footer>

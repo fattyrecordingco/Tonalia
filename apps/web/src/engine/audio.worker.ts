@@ -264,6 +264,36 @@ async function playback(
     frames: count,
   };
 }
+async function captureNoiseProfile(start: number, end: number): Promise<number[]> {
+  const i = info!;
+  const expected = epoch;
+  start = Math.max(0, Math.ceil(start));
+  end = Math.min(i.frames, Math.floor(end));
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end - start < 2048)
+    throw new Error('Select at least 2048 samples of noise only to capture a profile.');
+  if (end - start > i.sampleRate * 10)
+    throw new Error('Select at most 10 seconds of noise only to capture a profile.');
+  const count = Math.min(512, Math.floor((end - start - 2048) / 512) + 1);
+  const power = new Float64Array(1025 * i.channels);
+  const fft = new Spectrum(2048);
+  try {
+    for (let frame = 0; frame < count; frame++) {
+      const at = start + Math.floor((frame / Math.max(1, count - 1)) * (end - start - 2048));
+      const pcm = await samples(at, at + 2048, expected);
+      for (let ch = 0; ch < i.channels; ch++) {
+        const levels = fft.analyze(pcm, i.channels, ch);
+        for (let k = 0; k < 1025; k++) power[ch * 1025 + k] += 10 ** (levels[k] / 10);
+      }
+      if (frame % 16 === 0) await delay();
+    }
+    if (expected !== epoch) throw new Error('Source changed. Capture the noise profile again.');
+    return Array.from(power, (p) =>
+      Math.max(-240, Math.min(120, 10 * Math.log10(Math.max(1e-24, p / count)))),
+    );
+  } finally {
+    fft.free();
+  }
+}
 async function writeChunk(bytes: Uint8Array, requestId: number) {
   const id = ++ioId;
   const done = new Promise<void>((resolve, reject) => pendingWrites.set(id, { resolve, reject }));
@@ -271,7 +301,7 @@ async function writeChunk(bytes: Uint8Array, requestId: number) {
   await done;
 }
 async function exportAudio(
-  args: { layers: Layer[]; bits: number; start: number; end: number },
+  args: { layers: Layer[]; bits: number; start: number; end: number; mode?: Monitor },
   requestId: number,
 ) {
   const i = info!;
@@ -280,11 +310,21 @@ async function exportAudio(
   const start = Math.max(0, Math.floor(args.start)),
     end = Math.min(i.frames, Math.floor(args.end));
   if (end <= start) throw new Error('Choose a nonempty export range.');
+  if (args.mode && !['result', 'original', 'removed'].includes(args.mode))
+    throw new Error('Invalid export signal.');
   await writeChunk(wav_header(i.sampleRate, i.channels, end - start, args.bits), requestId);
   let peak = 0;
   for (let p = start; p < end; p += 32768) {
     if (expected !== epoch || own !== exportEpoch) throw new Error('Export cancelled.');
-    const pcm = await processed(p, Math.min(end, p + 32768), args.layers, expected);
+    const next = Math.min(end, p + 32768);
+    const pcm =
+      args.mode === 'original'
+        ? await samples(p, next, expected)
+        : await processed(p, next, args.layers, expected);
+    if (args.mode === 'removed') {
+      const original = await samples(p, next, expected);
+      for (let j = 0; j < pcm.length; j++) pcm[j] = original[j] - pcm[j];
+    }
     for (const v of pcm) peak = Math.max(peak, Math.abs(v));
     await writeChunk(encode(pcm, args.bits), requestId);
     self.postMessage({
@@ -344,6 +384,9 @@ self.onmessage = async (e: MessageEvent) => {
       case 'validate':
         validate(info, JSON.stringify(msg.args.layers));
         value = true;
+        break;
+      case 'noiseProfile':
+        value = await captureNoiseProfile(msg.args.start, msg.args.end);
         break;
       case 'analyze':
         value = await analyze(msg.args, epoch);

@@ -6,6 +6,7 @@ on:
       - 'website/**'
       - 'apps/web/**'
       - 'crates/**'
+      - 'tools/audio-ai/**'
       - 'scripts/build-website.mjs'
       - 'scripts/serve-website.mjs'
       - 'tests/website/**'

@@ -1,0 +1,51 @@
+[
+  {
+    "pack": "music",
+    "name": "htdemucs_6s.onnx",
+    "url": "https://huggingface.co/StemSplitio/htdemucs-6s-onnx/resolve/49df9b6989cf2150840ea65b0bef77a2e471b678/htdemucs_6s.onnx",
+    "size": 258159781,
+    "sha256": "48f8e84945579f8ab340e083339e9221e03785dbe733a52c388200b6d3ca779a"
+  },
+  {
+    "pack": "sound",
+    "name": "audiosep_resunet.onnx",
+    "url": "https://storage.googleapis.com/ailia-models/audiosep/audiosep_resunet.onnx?generation=1735783101733915",
+    "size": 102583411,
+    "sha256": "030b1ff2af237e753ed5441c3a11358defaf2a706d7e037af681e4282b0ec179"
+  },
+  {
+    "pack": "sound",
+    "name": "audiosep_text.onnx",
+    "url": "https://storage.googleapis.com/ailia-models/audiosep/audiosep_text.onnx?generation=1706490524844041",
+    "size": 501433356,
+    "sha256": "f3cb68423900435937ff5c139f1c867ef8d1b0c05e5023c64f3446a24c08d3de"
+  },
+  {
+    "pack": "sound",
+    "name": "roberta-tokenizer.json",
+    "url": "https://huggingface.co/FacebookAI/roberta-base/resolve/e2da8e2f811d1448a5b465c236feacd80ffbac7b/tokenizer.json",
+    "size": 1355863,
+    "sha256": "847bbeab6174d66a88898f729d52fa8d355fafe1bea101cf960dd404581df70e"
+  },
+  {
+    "pack": "identify",
+    "name": "panns_sound_event_detection.onnx",
+    "url": "https://storage.googleapis.com/ailia-models/audioset_tagging_cnn/sound_event_detection.onnx?generation=1659008252412313",
+    "size": 327325913,
+    "sha256": "01d426f5ca083ca9934d0d39fe38de31a91b7e3ed7d0a797d4c67e743f1555dc"
+  },
+  {
+    "pack": "identify",
+    "name": "audioset-labels.csv",
+    "url": "https://raw.githubusercontent.com/qiuqiangkong/audioset_tagging_cnn/d2f4b8c18eab44737fcc0de1248ae21eb43f6aa4/metadata/class_labels_indices.csv",
+    "size": 14675,
+    "sha256": "cdd1049833c4b86127c2773ac0d14a2754b6a6d0d1798002ed5c66e699708429"
+  },
+  {
+    "pack": "identify",
+    "name": "audioset-ontology.json",
+    "url": "https://raw.githubusercontent.com/audioset/ontology/d417d32bf59c711abb5910fd2f76a0eb44697991/ontology.json",
+    "size": 342780,
+    "sha256": "9c685f4403eecc3ca9be37fd7285cf212feaaea6ff7229d3e7ca89e0d1f2d15d"
+  }
+]

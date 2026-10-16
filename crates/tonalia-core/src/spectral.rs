@@ -26,6 +26,9 @@ pub enum Shape {
         #[serde(rename = "radiusHz")]
         radius_hz: f64,
         opacity: f64,
+        /// Absent in legacy projects, which retain their original accumulated dabs.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        hardness: Option<f64>,
     },
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -81,6 +84,80 @@ impl Mask {
         };
         (a - self.feather_time, b + self.feather_time)
     }
+    /// Evaluate a frame once, sharing geometry across channels. Brush primitives
+    /// touch only FFT bins inside their time/frequency support; no point thinning.
+    fn frame_weights(&self, t: f64, bin_hz: f64, weights: &mut [f64]) {
+        let Shape::Brush {
+            points,
+            radius_time,
+            radius_hz,
+            opacity,
+            hardness,
+        } = &self.shape
+        else {
+            for (k, weight) in weights.iter_mut().enumerate() {
+                *weight = self.weight(t, k as f64 * bin_hz, self.channel.unwrap_or(0));
+            }
+            return;
+        };
+        weights.fill(1.0);
+        let bin_count = weights.len();
+        let bins = |low: f64, high: f64| {
+            let first = (low / bin_hz).ceil().max(0.0) as usize;
+            let last = (high / bin_hz).floor().max(0.0) as usize;
+            first.min(bin_count)..last.saturating_add(1).min(bin_count)
+        };
+        if let Some(hardness) = hardness {
+            if let Some(first) = points.first() {
+                for (a, b) in
+                    std::iter::once((first, first)).chain(points.windows(2).map(|p| (&p[0], &p[1])))
+                {
+                    if t < a.sample.min(b.sample) - radius_time
+                        || t > a.sample.max(b.sample) + radius_time
+                    {
+                        continue;
+                    }
+                    let range = bins(a.hz.min(b.hz) - radius_hz, a.hz.max(b.hz) + radius_hz);
+                    let ax = (t - a.sample) / radius_time;
+                    let bx = (t - b.sample) / radius_time;
+                    let dx = bx - ax;
+                    for k in range {
+                        let f = k as f64 * bin_hz;
+                        let ay = (f - a.hz) / radius_hz;
+                        let by = (f - b.hz) / radius_hz;
+                        let dy = by - ay;
+                        let q =
+                            (-(ax * dx + ay * dy) / (dx * dx + dy * dy).max(1e-20)).clamp(0.0, 1.0);
+                        weights[k] = weights[k].min((ax + q * dx).hypot(ay + q * dy));
+                    }
+                }
+            }
+            for weight in weights {
+                let q = ((1.0 - *weight) / (1.0 - hardness).max(1e-9)).clamp(0.0, 1.0);
+                *weight = opacity * q * q * (3.0 - 2.0 * q);
+            }
+        } else {
+            for p in points {
+                if (t - p.sample).abs() > *radius_time {
+                    continue;
+                }
+                for k in bins(p.hz - radius_hz, p.hz + radius_hz) {
+                    let f = k as f64 * bin_hz;
+                    let d = (((t - p.sample) / radius_time).powi(2)
+                        + ((f - p.hz) / radius_hz).powi(2))
+                    .sqrt();
+                    if d < 1.0 {
+                        let x = (1.0 - d).clamp(0.0, 1.0);
+                        weights[k] *= 1.0 - opacity * x * x * (3.0 - 2.0 * x);
+                    }
+                }
+            }
+            for weight in weights {
+                *weight = 1.0 - *weight;
+            }
+        }
+    }
+
     pub fn weight(&self, t: f64, f: f64, channel: u16) -> f64 {
         if self.channel.is_some_and(|c| c != channel) {
             return 0.0;
@@ -134,7 +211,30 @@ impl Mask {
                 radius_time,
                 radius_hz,
                 opacity,
+                hardness,
             } => {
+                if let Some(hardness) = hardness {
+                    // Distance to a continuous stroke in physical sample/Hz coordinates.
+                    // Taking the nearest segment makes opacity independent of event density.
+                    let distance =
+                        |p: &Point| ((t - p.sample) / radius_time, (f - p.hz) / radius_hz);
+                    let (x, y) = distance(&points[0]);
+                    let mut nearest = x.hypot(y);
+                    for pair in points.windows(2) {
+                        let (ax, ay) = distance(&pair[0]);
+                        let (bx, by) = distance(&pair[1]);
+                        let dx = bx - ax;
+                        let dy = by - ay;
+                        let q =
+                            (-(ax * dx + ay * dy) / (dx * dx + dy * dy).max(1e-20)).clamp(0.0, 1.0);
+                        nearest = nearest.min((ax + q * dx).hypot(ay + q * dy));
+                    }
+                    if nearest >= 1.0 {
+                        return 0.0;
+                    }
+                    let q = ((1.0 - nearest) / (1.0 - hardness).max(1e-9)).clamp(0.0, 1.0);
+                    return opacity * q * q * (3.0 - 2.0 * q);
+                }
                 // Smooth elliptical dabs. The persisted UI stroke includes interpolated points.
                 let mut keep = 1.0;
                 for p in points {
@@ -181,7 +281,7 @@ pub fn validate_layers(
         {
             return Err("Invalid spectral layer identity or gain (−120 to +24 dB).".into());
         }
-        crate::restoration::validate_processor(l, rate)?;
+        crate::restoration::validate_processor(l, rate, channels)?;
         if matches!(
             l.processor,
             Some(crate::restoration::Processor::Interpolate)
@@ -230,6 +330,7 @@ pub fn validate_layers(
                 radius_time,
                 radius_hz,
                 opacity,
+                hardness,
             } => {
                 if points.is_empty()
                     || points.len() > 4096
@@ -240,6 +341,7 @@ pub fn validate_layers(
                     || !(1.0..=rate as f64 * 10.0).contains(radius_time)
                     || !(0.01..=rate as f64 / 2.0).contains(radius_hz)
                     || !(0.0..=1.0).contains(opacity)
+                    || hardness.is_some_and(|h| !h.is_finite() || !(0.0..=1.0).contains(&h))
                 {
                     return Err("Invalid brush geometry, size or opacity.".into());
                 }
@@ -356,9 +458,18 @@ impl Analyzer {
         let gain = 10f64.powf(layer.gain_db / 20.0) - 1.0;
         // Periodic Hann squared at 75% overlap sums to 3/2, including zero-extended support frames.
         let normalization = 1.5 * self.n as f64;
+        let mut mask_weights = vec![0.0; self.n / 2 + 1];
         for m in first..=last {
             let center = m * hop;
             let start = center - half;
+            layer.mask.frame_weights(
+                center as f64,
+                rate as f64 / self.n as f64,
+                &mut mask_weights,
+            );
+            if mask_weights.iter().all(|w| *w == 0.0) {
+                continue;
+            }
             for ch in 0..channels {
                 if layer.mask.channel.is_some_and(|c| c as usize != ch) {
                     continue;
@@ -377,6 +488,24 @@ impl Analyzer {
                 let mut changed = false;
                 for k in 0..=self.n / 2 {
                     let delta_gain = match layer.processor {
+                        Some(crate::restoration::Processor::NoiseReduction {
+                            ref profile_db,
+                            reduction_db,
+                            sensitivity_db,
+                        }) => {
+                            let factor = if k == 0 || k == self.n / 2 { 1.0 } else { 2.0 };
+                            let amplitude = self.buffer[k].norm() * factor / self.coherent;
+                            // Profiles use the fixed processing FFT, independently of display FFT.
+                            let profile_bin = (k * 2048 / self.n).min(1024);
+                            let noise_power = 10f64.powf(
+                                (profile_db[ch * 1025 + profile_bin] + sensitivity_db) / 10.0,
+                            );
+                            let floor = 10f64.powf(-reduction_db / 20.0);
+                            (1.0 - noise_power / amplitude.powi(2).max(1e-30))
+                                .max(floor * floor)
+                                .sqrt()
+                                - 1.0
+                        }
                         Some(crate::restoration::Processor::SpectralGate {
                             threshold_db,
                             reduction_db,
@@ -403,11 +532,7 @@ impl Analyzer {
                         }
                         _ => gain,
                     };
-                    let w = layer.mask.weight(
-                        center as f64,
-                        k as f64 * rate as f64 / self.n as f64,
-                        ch as u16,
-                    ) * delta_gain;
+                    let w = mask_weights[k] * delta_gain;
                     changed |= w != 0.0;
                     self.buffer[k] *= w;
                     if k > 0 && k < self.n / 2 {
@@ -460,4 +585,49 @@ pub fn render_layers(
         return Err("Processing produced nonfinite audio.".into());
     }
     Ok(out)
+}
+
+#[cfg(test)]
+mod brush_frame_tests {
+    use super::*;
+    #[test]
+    fn indexed_brush_matches_reference_without_changing_legacy_strokes() {
+        for hardness in [None, Some(0.0), Some(0.5), Some(1.0)] {
+            for points in [
+                vec![Point {
+                    sample: 4000.0,
+                    hz: 1200.0,
+                }],
+                (0..70)
+                    .map(|i| Point {
+                        sample: 1000.0 + i as f64 * 130.0,
+                        hz: 100.0 + (i as f64 * 0.61).sin().abs() * 22000.0,
+                    })
+                    .collect(),
+            ] {
+                let mask = Mask {
+                    shape: Shape::Brush {
+                        points,
+                        radius_time: 900.0,
+                        radius_hz: 430.0,
+                        opacity: 0.63,
+                        hardness,
+                    },
+                    channel: Some(1),
+                    feather_time: 0.0,
+                    feather_hz: 0.0,
+                };
+                for t in [0.0, 100.0, 512.0, 1000.0, 4096.0, 8800.0, 11000.0] {
+                    let mut weights = vec![0.0; 1025];
+                    mask.frame_weights(t, 48000.0 / 2048.0, &mut weights);
+                    for (k, weight) in weights.iter().enumerate() {
+                        assert!(
+                            (weight - mask.weight(t, k as f64 * 48000.0 / 2048.0, 1)).abs() < 1e-11,
+                            "t={t}, bin={k}, hardness={hardness:?}"
+                        );
+                    }
+                }
+            }
+        }
+    }
 }

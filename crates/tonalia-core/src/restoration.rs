@@ -6,6 +6,14 @@ use std::f64::consts::PI;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 pub enum Processor {
+    NoiseReduction {
+        #[serde(rename = "profileDb")]
+        profile_db: Vec<f64>,
+        #[serde(rename = "reductionDb")]
+        reduction_db: f64,
+        #[serde(rename = "sensitivityDb")]
+        sensitivity_db: f64,
+    },
     SpectralGate {
         #[serde(rename = "thresholdDb")]
         threshold_db: f64,
@@ -31,7 +39,8 @@ impl Layer {
                 None => self.gain_db != 0.0,
                 Some(
                     Processor::SpectralGate { reduction_db, .. }
-                    | Processor::Hum { reduction_db, .. },
+                    | Processor::Hum { reduction_db, .. }
+                    | Processor::NoiseReduction { reduction_db, .. },
                 ) => reduction_db != 0.0,
                 Some(Processor::NeuralSpeechV1 { strength }) => strength != 0.0,
                 Some(Processor::Interpolate) => true,
@@ -48,10 +57,23 @@ pub fn render_halo(layers: &[Layer]) -> u64 {
         })
         .sum::<u64>()
 }
-pub fn validate_processor(layer: &Layer, rate: u32) -> Result<(), String> {
+pub fn validate_processor(layer: &Layer, rate: u32, channels: u16) -> Result<(), String> {
     let finite = |v: f64, a: f64, b: f64| v.is_finite() && (a..=b).contains(&v);
     match layer.processor {
         None => (),
+        Some(Processor::NoiseReduction {
+            ref profile_db,
+            reduction_db,
+            sensitivity_db,
+        }) => {
+            if profile_db.len() != 1025 * channels as usize
+                || !profile_db.iter().all(|v| finite(*v, -240.0, 120.0))
+                || !finite(reduction_db, 0.0, 60.0)
+                || !finite(sensitivity_db, -12.0, 24.0)
+            {
+                return Err("Noise reduction requires a valid per-channel 2048-point noise profile, reduction 0…60 dB and sensitivity −12…24 dB.".into());
+            }
+        }
         Some(Processor::SpectralGate {
             threshold_db,
             reduction_db,

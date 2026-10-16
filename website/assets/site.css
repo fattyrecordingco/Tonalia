@@ -501,6 +501,13 @@ figcaption {
 .feature-story.story-reverse {
   grid-template-columns: 1fr 0.66fr;
 }
+.story-copy .eyebrow {
+  color: var(--accent);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
 .story-copy h2 {
   margin-bottom: 24px;
   font-size: clamp(31px, 3.3vw, 45px);

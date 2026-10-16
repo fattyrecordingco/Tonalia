@@ -16,7 +16,14 @@ export interface Point {
 export type Shape =
   | { kind: 'rectangle'; start: number; end: number; low: number; high: number }
   | { kind: 'polygon'; points: Point[] }
-  | { kind: 'brush'; points: Point[]; radiusTime: number; radiusHz: number; opacity: number };
+  | {
+      kind: 'brush';
+      points: Point[];
+      radiusTime: number;
+      radiusHz: number;
+      opacity: number;
+      hardness?: number;
+    };
 export interface Mask {
   shape: Shape;
   channel: number | null;
@@ -24,6 +31,7 @@ export interface Mask {
   featherHz: number;
 }
 export type Processor =
+  | { kind: 'noiseReduction'; profileDb: number[]; reductionDb: number; sensitivityDb: number }
   | { kind: 'spectralGate'; thresholdDb: number; reductionDb: number }
   | { kind: 'hum'; frequency: number; widthHz: number; reductionDb: number }
   | { kind: 'interpolate' }

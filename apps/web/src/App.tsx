@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { version } from '../../../package.json';
 import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWebview } from '@tauri-apps/api/webview';
 import {
   Activity,
   ArrowDown,
@@ -46,6 +47,7 @@ import { AudioEngine, calibrationFile } from './engine/client';
 import { SpectralCanvas, type Overview } from './components/SpectralCanvas';
 import { NumberField } from './components/NumberField';
 import { SpectrumPlot } from './components/SpectrumPlot';
+import { SeparationPanel } from './components/SeparationPanel';
 import type {
   WavInfo,
   View,
@@ -140,6 +142,11 @@ export default function App() {
     [channel, setChannel] = useState<number | null>(null),
     [brushSize, setBrushSize] = useState(34),
     [opacity, setOpacity] = useState(0.7);
+  const [hardness, setHardness] = useState(0.3);
+  const [noiseProfile, setNoiseProfile] = useState<number[] | null>(null);
+  const [capturingNoise, setCapturingNoise] = useState(false);
+  const [sensitivity, setSensitivity] = useState(3);
+  const sourceGeneration = useRef(0);
   const [gain, setGain] = useState(-18),
     [layerName, setLayerName] = useState('Spectral attenuation');
   const [position, setPosition] = useState(0),
@@ -166,12 +173,14 @@ export default function App() {
     [dirty, setDirty] = useState(false),
     [dragging, setDragging] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [separationOpen, setSeparationOpen] = useState(false);
   const shortcutsRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     if (shortcutsOpen) shortcutsRef.current?.showModal();
     else shortcutsRef.current?.close();
   }, [shortcutsOpen]);
   const [exportError, setExportError] = useState('');
+  const [exportMode, setExportMode] = useState<Monitor>('result');
   const [exportOpen, setExportOpen] = useState(false),
     [exporting, setExporting] = useState(false),
     [exportProgress, setExportProgress] = useState(0),
@@ -442,6 +451,8 @@ export default function App() {
       await stop();
       try {
         const metadata = await engine.load(source);
+        sourceGeneration.current++;
+        setNoiseProfile(null);
         infoRef.current = metadata;
         nameRef.current = sourceName(source);
         sourceSize.current = source.kind === 'browser' ? source.file.size : source.size;
@@ -512,7 +523,14 @@ export default function App() {
     [stop],
   );
   const fit = useCallback(() => {
-    if (info) setView((v) => ({ ...v, start: 0, end: info.frames }));
+    if (info)
+      setView((v) => ({
+        ...v,
+        start: 0,
+        end: info.frames,
+        low: v.log ? 20 : 0,
+        high: info.sampleRate / 2,
+      }));
   }, [info]);
   const fitSelection = useCallback(() => {
     if (!selection || !info) return;
@@ -522,6 +540,11 @@ export default function App() {
       ...v,
       start: Math.max(0, b.start - margin),
       end: Math.min(info.frames, b.end + margin),
+      low: Math.max(v.log ? 20 : 0, b.low - Math.max(1, (b.high - b.low) * 0.08)),
+      high: Math.min(
+        info.sampleRate / 2,
+        Math.max(v.log ? 21 : 1, b.high + Math.max(1, (b.high - b.low) * 0.08)),
+      ),
     }));
   }, [selection, info]);
   const applyGain = useCallback(async () => {
@@ -558,25 +581,54 @@ export default function App() {
   const [reduction, setReduction] = useState(18);
   const [humHz, setHumHz] = useState(50);
   const [neuralStrength, setNeuralStrength] = useState(0.8);
+  const captureNoise = async () => {
+    if (!selection || !info || capturingNoise) return;
+    const generation = sourceGeneration.current;
+    setCapturingNoise(true);
+    setError('');
+    try {
+      const b = maskBounds(selection);
+      const profile = await engine.call<number[]>('noiseProfile', { start: b.start, end: b.end });
+      if (generation === sourceGeneration.current) {
+        setNoiseProfile(profile);
+        notify(
+          'Noise profile captured. Select the audio to clean, or select the entire recording.',
+        );
+      }
+    } catch (e) {
+      if (generation === sourceGeneration.current) setError(String(e));
+    } finally {
+      setCapturingNoise(false);
+    }
+  };
   const applyRestoration = async () => {
     if (!info || !selection) return;
+    if (restoreKind === 'noiseReduction' && !noiseProfile) return;
     try {
       const timeOnly = restoreKind === 'interpolate' || restoreKind === 'neuralSpeechV1';
       const bounds = maskBounds(selection);
       const processor: Processor =
-        restoreKind === 'spectralGate'
-          ? { kind: restoreKind, thresholdDb: threshold, reductionDb: reduction }
-          : restoreKind === 'hum'
-            ? {
-                kind: restoreKind,
-                frequency: humHz,
-                widthHz: info.sampleRate / 2048,
-                reductionDb: reduction,
-              }
-            : restoreKind === 'neuralSpeechV1'
-              ? { kind: restoreKind, strength: neuralStrength }
-              : { kind: restoreKind };
+        restoreKind === 'noiseReduction'
+          ? {
+              kind: restoreKind,
+              profileDb: noiseProfile!,
+              reductionDb: reduction,
+              sensitivityDb: sensitivity,
+            }
+          : restoreKind === 'spectralGate'
+            ? { kind: restoreKind, thresholdDb: threshold, reductionDb: reduction }
+            : restoreKind === 'hum'
+              ? {
+                  kind: restoreKind,
+                  frequency: humHz,
+                  widthHz: info.sampleRate / 2048,
+                  reductionDb: reduction,
+                }
+              : restoreKind === 'neuralSpeechV1'
+                ? { kind: restoreKind, strength: neuralStrength }
+                : { kind: restoreKind };
       const labels = {
+        noiseReduction: 'Noise reduction',
         spectralGate: 'Spectral gate',
         hum: 'Harmonic hum attenuation',
         interpolate: 'Short-click interpolation',
@@ -727,7 +779,10 @@ export default function App() {
       } else if (cmd && k === 'o') {
         if (!e.repeat) void chooseAudio();
       } else if (cmd && k === 'e') {
-        if (info && !e.repeat) setExportOpen(true);
+        if (info && !e.repeat) {
+          setExportMode(mode);
+          setExportOpen(true);
+        }
       } else if (cmd && k === 'a') {
         if (info)
           setRegion({
@@ -770,8 +825,8 @@ export default function App() {
       } else if (!cmd && !e.altKey) {
         const t = tools.find((t) => t.key.toLowerCase() === k);
         if (t) setTool(t.id);
-        else if (k === '[') setBrushSize((v) => Math.max(8, v - 4));
-        else if (k === ']') setBrushSize((v) => Math.min(120, v + 4));
+        else if (k === '[') setBrushSize((v) => Math.max(2, v - (e.shiftKey ? 1 : 4)));
+        else if (k === ']') setBrushSize((v) => Math.min(160, v + (e.shiftKey ? 1 : 4)));
         else handled = false;
       } else handled = false;
       if (handled) e.preventDefault();
@@ -811,7 +866,7 @@ export default function App() {
     const a = exportRange === 'selection' ? Math.max(0, Math.floor(bounds.start)) : 0,
       b = exportRange === 'selection' ? Math.min(info.frames, Math.ceil(bounds.end)) : info.frames;
     try {
-      const result = await engine.export(name, layers, a, b, exportBits);
+      const result = await engine.export(name, layers, a, b, exportBits, exportMode);
       if (result) {
         setExportOpen(false);
         notify(
@@ -831,6 +886,17 @@ export default function App() {
     setGain(l.gainDb);
     setChannel(l.mask.channel);
     setTab(l.processor ? 'restore' : 'edit');
+    if (l.processor) {
+      const p = l.processor;
+      setRestoreKind(p.kind);
+      if ('reductionDb' in p) setReduction(p.reductionDb);
+      if (p.kind === 'noiseReduction') {
+        setNoiseProfile([...p.profileDb]);
+        setSensitivity(p.sensitivityDb);
+      } else if (p.kind === 'spectralGate') setThreshold(p.thresholdDb);
+      else if (p.kind === 'hum') setHumHz(p.frequency);
+      else if (p.kind === 'neuralSpeechV1') setNeuralStrength(p.strength);
+    }
   };
   const reorder = (index: number, direction: number) => {
     const next = [...layers];
@@ -840,11 +906,51 @@ export default function App() {
     commit(next);
   };
   const wholePeak = stats ? Math.max(...stats.channels.map((c) => c.peak)) : 0;
+  const handleNativeDrop = useRef<(paths: string[]) => Promise<void>>(async () => {});
+  handleNativeDrop.current = async (paths) => {
+    setDragging(false);
+    if (paths.length !== 1) {
+      setError('Drop one WAV or Tonalia project at a time.');
+      return;
+    }
+    const path = paths[0];
+    try {
+      if (/\.json$/i.test(path)) await loadProject(await invoke<string>('read_project', { path }));
+      else if (/\.(wav|wave)$/i.test(path))
+        await openSource(await invoke<SourceRef>('open_source', { path }));
+      else setError('Drop a WAV (.wav or .wave) or Tonalia project (.json).');
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+  useEffect(() => {
+    if (!isNative()) return;
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    void getCurrentWebview()
+      .onDragDropEvent(({ payload }) => {
+        if (disposed) return;
+        if (payload.type === 'enter' || payload.type === 'over') setDragging(true);
+        else if (payload.type === 'leave') setDragging(false);
+        else if (payload.type === 'drop') void handleNativeDrop.current(payload.paths);
+      })
+      .then((fn) => {
+        if (disposed) fn();
+        else unlisten = fn;
+      })
+      .catch((e) => setError(String(e)));
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, []);
   return (
     <div
       className="app"
       onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes('Files')) return;
         e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
         setDragging(true);
       }}
       onDragLeave={(e) => {
@@ -853,10 +959,22 @@ export default function App() {
       onDrop={(e) => {
         e.preventDefault();
         setDragging(false);
+        if (e.dataTransfer.files.length !== 1) {
+          setError('Drop one WAV or Tonalia project at a time.');
+          return;
+        }
         const file = e.dataTransfer.files[0];
         if (file) {
-          if (file.name.endsWith('.json')) void file.text().then(loadProject);
-          else void openSource({ kind: 'browser', file });
+          if (/\.json$/i.test(file.name)) {
+            if (file.size > 4 * 1024 * 1024)
+              setError('The project exceeds the 4 MiB manifest limit.');
+            else
+              void file
+                .text()
+                .then(loadProject)
+                .catch((e) => setError(String(e)));
+          } else if (/\.(wav|wave)$/i.test(file.name)) void openSource({ kind: 'browser', file });
+          else setError('Drop a WAV (.wav or .wave) or Tonalia project (.json).');
         }
       }}
     >
@@ -975,9 +1093,17 @@ export default function App() {
             Open WAV
           </button>
           <button
+            className="quiet-button separation-launch"
+            onClick={() => setSeparationOpen(true)}
+            disabled={loading || exporting}
+          >
+            <AudioLines size={16} /> Separate sounds
+          </button>
+          <button
             className="export-button"
             onClick={() => {
               setExportError('');
+              setExportMode(mode);
               setExportOpen(true);
             }}
             disabled={!info || loading || !!pendingProject}
@@ -1010,12 +1136,25 @@ export default function App() {
               <input
                 aria-label="Brush diameter"
                 type="range"
-                min="8"
-                max="120"
+                min="2"
+                max="160"
                 value={brushSize}
                 onChange={(e) => setBrushSize(+e.target.value)}
               />
               <span>{brushSize}px</span>
+            </label>
+            <label className="inline-control">
+              Hardness
+              <input
+                aria-label="Brush hardness"
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={hardness}
+                onChange={(e) => setHardness(+e.target.value)}
+              />
+              <span>{Math.round(hardness * 100)}%</span>
             </label>
             <label className="inline-control">
               Opacity
@@ -1157,6 +1296,7 @@ export default function App() {
                       <small>
                         {l.processor
                           ? {
+                              noiseReduction: 'Captured noise profile',
                               spectralGate: 'Spectral gate',
                               hum: 'Harmonic notches',
                               interpolate: 'Time interpolation',
@@ -1281,6 +1421,7 @@ export default function App() {
             pending={pending}
             brushSize={brushSize}
             opacity={opacity}
+            hardness={hardness}
             channel={channel}
             onSelection={setRegion}
             onView={setView}
@@ -1529,12 +1670,67 @@ export default function App() {
                     value={restoreKind}
                     onChange={(e) => setRestoreKind(e.target.value as Processor['kind'])}
                   >
+                    <option value="noiseReduction">Noise reduction (captured profile)</option>
                     <option value="spectralGate">Spectral gate</option>
                     <option value="hum">Harmonic hum attenuation</option>
                     <option value="interpolate">Short-click interpolation</option>
                     <option value="neuralSpeechV1">Offline neural speech denoise</option>
                   </select>
                 </label>
+                {restoreKind === 'noiseReduction' && (
+                  <>
+                    <p className="caption">
+                      Select a noise-only passage (2048 samples to 10 seconds), then capture its
+                      profile from the original audio. Next select the region to clean.
+                    </p>
+                    <button
+                      className="quiet-button full-width"
+                      disabled={!info || !selection || capturingNoise || loading || exporting}
+                      onClick={() => void captureNoise()}
+                    >
+                      {capturingNoise
+                        ? 'Capturing noise…'
+                        : noiseProfile
+                          ? 'Recapture noise profile'
+                          : 'Capture noise profile'}
+                    </button>
+                    <p className="caption" role="status">
+                      {noiseProfile
+                        ? 'Noise profile ready · saved with each noise reduction layer.'
+                        : 'No noise profile captured.'}
+                    </p>
+                    <button
+                      className="quiet-button full-width"
+                      disabled={!info}
+                      onClick={() => {
+                        if (info)
+                          setRegion({
+                            shape: {
+                              kind: 'rectangle',
+                              start: 0,
+                              end: info.frames,
+                              low: 0,
+                              high: info.sampleRate / 2,
+                            },
+                            channel,
+                            featherTime: 0,
+                            featherHz: 0,
+                          });
+                      }}
+                    >
+                      Select entire recording
+                    </button>
+                    <NumberField
+                      label="Noise sensitivity"
+                      value={sensitivity}
+                      min={-12}
+                      max={24}
+                      digits={1}
+                      unit="dB"
+                      onCommit={setSensitivity}
+                    />
+                  </>
+                )}
                 {restoreKind === 'spectralGate' && (
                   <NumberField
                     label="Gate threshold"
@@ -1546,7 +1742,9 @@ export default function App() {
                     onCommit={setThreshold}
                   />
                 )}
-                {(restoreKind === 'spectralGate' || restoreKind === 'hum') && (
+                {(restoreKind === 'spectralGate' ||
+                  restoreKind === 'hum' ||
+                  restoreKind === 'noiseReduction') && (
                   <NumberField
                     label="Maximum reduction"
                     value={reduction}
@@ -1580,17 +1778,26 @@ export default function App() {
                   />
                 )}
                 <p className="caption">
-                  {restoreKind === 'spectralGate'
-                    ? 'Attenuates bins below a calibrated threshold with a 12 dB soft knee. This is a spectral gate, not learned noise-profile subtraction.'
-                    : restoreKind === 'hum'
-                      ? 'FFT harmonic notches at the fundamental and its multiples. Width is one processing FFT bin; low-frequency resolution is limited.'
-                      : restoreKind === 'interpolate'
-                        ? 'Replaces a short click with a line between intact neighboring samples. Select at most 10 ms, away from source edges. Uses the full frequency band.'
-                        : 'Experimental RNNoise speech model included in the app. Runs offline at 48 kHz, independently per channel. Full-band time selection; fixed context and delay compensation. May alter music or speech; always audition.'}
+                  {restoreKind === 'noiseReduction'
+                    ? 'Reduces the captured noise spectrum with a per-channel spectral subtraction filter. Higher sensitivity removes more; maximum reduction limits attenuation. Audition Result and Removed to check detail.'
+                    : restoreKind === 'spectralGate'
+                      ? 'Attenuates bins below a calibrated threshold with a 12 dB soft knee. This is a spectral gate, not learned noise-profile subtraction.'
+                      : restoreKind === 'hum'
+                        ? 'FFT harmonic notches at the fundamental and its multiples. Width is one processing FFT bin; low-frequency resolution is limited.'
+                        : restoreKind === 'interpolate'
+                          ? 'Replaces a short click with a line between intact neighboring samples. Select at most 10 ms, away from source edges. Uses the full frequency band.'
+                          : 'Experimental RNNoise speech model included in the app. Runs offline at 48 kHz, independently per channel. Full-band time selection; fixed context and delay compensation. May alter music or speech; always audition.'}
                 </p>
                 <button
                   className="apply-button"
-                  disabled={!info || !selection || exporting || !!pendingProject}
+                  disabled={
+                    !info ||
+                    !selection ||
+                    exporting ||
+                    !!pendingProject ||
+                    capturingNoise ||
+                    (restoreKind === 'noiseReduction' && !noiseProfile)
+                  }
                   onClick={() => void applyRestoration()}
                 >
                   <Plus size={15} />
@@ -1783,7 +1990,7 @@ export default function App() {
                   value={fftSize}
                   onChange={(e) => setFftSize(+e.target.value)}
                 >
-                  {[512, 1024, 2048, 4096, 8192].map((n) => (
+                  {[512, 1024, 2048, 4096, 8192, 16384].map((n) => (
                     <option key={n} value={n}>
                       {n.toLocaleString()} samples
                     </option>
@@ -1799,7 +2006,11 @@ export default function App() {
                     setView((v) => ({
                       ...v,
                       log: e.target.value === 'log',
-                      low: e.target.value === 'log' ? Math.max(20, v.low) : 0,
+                      low:
+                        e.target.value === 'log'
+                          ? Math.min(Math.max(20, v.low), (info?.sampleRate || 48000) / 2 - 1)
+                          : v.low,
+                      high: Math.max(v.high, e.target.value === 'log' ? 21 : 1),
                     }))
                   }
                 >
@@ -1807,6 +2018,28 @@ export default function App() {
                   <option value="linear">Linear</option>
                 </select>
               </label>
+              <div className="field-grid">
+                <NumberField
+                  label="View low frequency"
+                  value={view.low}
+                  min={view.log ? 20 : 0}
+                  max={view.high - 0.01}
+                  digits={1}
+                  unit="Hz"
+                  disabled={!info}
+                  onCommit={(low) => setView((v) => ({ ...v, low }))}
+                />
+                <NumberField
+                  label="View high frequency"
+                  value={view.high}
+                  min={view.low + 0.01}
+                  max={info ? info.sampleRate / 2 : 24000}
+                  digits={1}
+                  unit="Hz"
+                  disabled={!info}
+                  onCommit={(high) => setView((v) => ({ ...v, high }))}
+                />
+              </div>
               <div className="field-grid">
                 <NumberField
                   label="Display floor"
@@ -1952,6 +2185,30 @@ export default function App() {
           <span>Your audio stays on this device.</span>
         </div>
       )}
+      <SeparationPanel
+        open={separationOpen}
+        onClose={() => setSeparationOpen(false)}
+        source={engine.currentSource}
+        info={info}
+        fingerprint={fingerprint}
+        selection={selection}
+        bounds={bounds}
+        beforePreview={stop}
+        onOpenTrack={async (path) => {
+          await openSource(await invoke<SourceRef>('open_source', { path }));
+        }}
+        onSelect={(mask) => {
+          setRegion(mask);
+          if (info) {
+            const b = maskBounds(mask);
+            setView((v) => ({
+              ...v,
+              start: Math.max(0, b.start - info.sampleRate * 0.05),
+              end: Math.min(info.frames, b.end + info.sampleRate * 0.05),
+            }));
+          }
+        }}
+      />
       <dialog
         ref={dialogRef}
         className="export-dialog"
@@ -1965,7 +2222,7 @@ export default function App() {
         <div className="dialog-heading">
           <div>
             <h2>Export audio</h2>
-            <p>Render your current layer stack to a new WAV.</p>
+            <p>Export the result, the removed signal, or the original audio.</p>
           </div>
           <button
             aria-label="Close export"
@@ -1977,6 +2234,25 @@ export default function App() {
             <X size={18} />
           </button>
         </div>
+        <label className="select-field">
+          <span>Signal</span>
+          <select
+            aria-label="Export signal"
+            disabled={exporting}
+            value={exportMode}
+            onChange={(e) => setExportMode(e.target.value as Monitor)}
+          >
+            <option value="result">Result · edited recording</option>
+            <option value="removed">Removed · isolated layer difference</option>
+            <option value="original">Original · unprocessed recording</option>
+          </select>
+        </label>
+        {exportMode === 'removed' && (
+          <p className="caption">
+            Exports exactly the Removed signal: original minus the result of all enabled layers.
+            Bypassed layers are excluded. With no active edits this is silence.
+          </p>
+        )}
         <label className="select-field">
           <span>Range</span>
           <select
@@ -2115,6 +2391,7 @@ export default function App() {
             ['Wheel / trackpad pinch', 'Zoom at pointer'],
             ['Shift+wheel / horizontal scroll', 'Pan time'],
             ['Alt+wheel', 'Zoom frequency at pointer'],
+            ['Alt+Shift+wheel / vertical hand drag', 'Pan frequency'],
           ].map(([keys, action]) => (
             <div key={keys}>
               <dt>{keys}</dt>

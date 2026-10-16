@@ -10,6 +10,7 @@ class TonaliaPlayer extends AudioWorkletProcessor {
     this.frames = 0;
     this.lastReport = 0;
     this.underruns = 0;
+    this.starvedFrames = 0;
     this.volume = 1;
     this.peak = 0;
     this.port.onmessage = ({ data }) => {
@@ -51,6 +52,11 @@ class TonaliaPlayer extends AudioWorkletProcessor {
           this.port.postMessage({ type: 'ended', frames: this.frames });
         } else {
           missed = true;
+          this.starvedFrames++;
+          if (this.starvedFrames >= sampleRate * 2) {
+            this.running = false;
+            this.port.postMessage({ type: 'underrun' });
+          }
         }
         continue;
       }
@@ -59,13 +65,12 @@ class TonaliaPlayer extends AudioWorkletProcessor {
         output[c][f] = value;
         this.peak = Math.max(this.peak, Math.abs(value));
       }
+      this.starvedFrames = 0;
       this.offset += chunk.channels;
       this.frames++;
     }
     if (missed) {
       this.underruns++;
-      this.running = false;
-      this.port.postMessage({ type: 'underrun' });
     }
     if (this.frames - this.lastReport >= 2048) {
       this.lastReport = this.frames;
