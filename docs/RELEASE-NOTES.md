@@ -1,4 +1,4 @@
-Tonalia 0.4.1 adds local sound separation, more precise spectral editing, and a fix for brush edits interrupting playback.
+Tonalia 0.4.2 adds local sound separation, more precise spectral editing, and a fix for brush edits interrupting playback.
 
 ### Brush playback fix
 
@@ -22,18 +22,18 @@ Python 3.11+ and a one-time download are required for these optional packs (abou
 
 | Computer | Installer |
 | --- | --- |
-| Windows 11 x64 | [Windows setup.exe](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_windows_x64_setup.exe) |
-| Mac Apple Silicon, macOS 13+ | [Apple Silicon DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_macos_apple_silicon.dmg) |
-| Mac Intel, macOS 13+ | [Intel DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_macos_intel.dmg) |
-| Linux x86-64, Ubuntu 22.04+/compatible Debian | [Debian package](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_linux_amd64.deb) |
-| Compatible Linux x86-64 desktop | [AppImage](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_linux_x86_64.AppImage) |
+| Windows 11 x64 | [Windows setup.exe](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/Tonalia_0.4.2_windows_x64_setup.exe) |
+| Mac Apple Silicon, macOS 13+ | [Apple Silicon DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/Tonalia_0.4.2_macos_apple_silicon.dmg) |
+| Mac Intel, macOS 13+ | [Intel DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/Tonalia_0.4.2_macos_intel.dmg) |
+| Linux x86-64, Ubuntu 22.04+/compatible Debian | [Debian package](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/Tonalia_0.4.2_linux_amd64.deb) |
+| Compatible Linux x86-64 desktop | [AppImage](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/Tonalia_0.4.2_linux_x86_64.AppImage) |
 
-[Website and browser editor](https://fattyrecordingco.github.io/Tonalia/) · [Illustrated guide](https://fattyrecordingco.github.io/Tonalia/guide/) · [Installation instructions](https://github.com/fattyrecordingco/Tonalia/blob/main/docs/INSTALL.md) · [SHA-256 checksums](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/SHA256SUMS.txt)
+[Website and browser editor](https://fattyrecordingco.github.io/Tonalia/) · [Illustrated guide](https://fattyrecordingco.github.io/Tonalia/guide/) · [Installation instructions](https://github.com/fattyrecordingco/Tonalia/blob/main/docs/INSTALL.md) · [SHA-256 checksums](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/SHA256SUMS.txt)
 
 Save your project and close Tonalia before upgrading. Run the installer to update the installed app and shortcuts. Schema 1 and 2 projects remain readable after verifying the original WAV. Generated AI tracks are separate audio files; export them before clearing the AI cache.
 
 ### Verification and limits
 
-The release workflow runs core numerical tests, desktop tests, browser integration checks and actual package installation/DSP diagnostics before publishing the assets. Per-platform verification reports accompany the installers. The source includes dense-brush playback tests and real-model separation contracts. See the [0.4.1 verification record](https://github.com/fattyrecordingco/Tonalia/blob/main/docs/implementation/RELEASE-0.4.1.md) for measured results and scope.
+The release workflow runs core numerical tests, desktop tests, browser integration checks and actual package installation/DSP diagnostics before publishing the assets. The 0.4.2 startup check waits for the actual React workspace to mount, replacing a two-frame assumption that failed on WebKit. Per-platform verification reports accompany the installers. The source includes dense-brush playback tests and real-model separation contracts. See the [0.4.2 verification record](https://github.com/fattyrecordingco/Tonalia/blob/main/docs/implementation/RELEASE-0.4.2.md) for measured results and scope.
 
 This remains a development release: Windows is unsigned and Mac packages are not notarized. It opens mono/stereo WAV/RF64 and exports float WAV; there is no multitrack timeline, MP3 import, recording, plug-in hosting or guaranteed Audition parity. Display detail is independent of the fixed 2048-point processing FFT. Existing 48 kHz neural speech denoise and experimental trusted-LAN co-editing remain available with their earlier limits.

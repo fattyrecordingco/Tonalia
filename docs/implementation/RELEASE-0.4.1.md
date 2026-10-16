@@ -1,6 +1,6 @@
-# Tonalia 0.4.1
+# Tonalia 0.4.1 candidate (withheld)
 
-This release includes the editing and local source-separation additions in [release notes](../RELEASE-NOTES.md). The core editor is shared between desktop and browser through Rust/WebAssembly. Optional separation is desktop-only; model identities, attribution and inference limits are documented in [audio intelligence](../../tools/audio-ai/README.md).
+This candidate includes the editing and local source-separation additions in [release notes](../RELEASE-NOTES.md). The core editor is shared between desktop and browser through Rust/WebAssembly. Optional separation is desktop-only; model identities, attribution and inference limits are documented in [audio intelligence](../../tools/audio-ai/README.md).
 
 ## Brush deadline correction
 
@@ -28,6 +28,6 @@ On Windows, 25 core and five desktop Rust tests, the AudioWorklet recovery test,
 
 ## Distribution
 
-The tagged release workflow builds and installs Windows x64, Apple Silicon, Intel Mac, Linux Debian and AppImage packages. Published installer hashes, sizes, exact source commit and workflow URL are recorded in [build-artifacts.json](build-artifacts.json); per-platform installed-app diagnostic reports accompany the release. [Distribution history](DISTRIBUTION.md) retains earlier qualification separately. The website and browser editor deploy together from main after the new download assets are public.
+The tagged release workflow builds and installs Windows x64, Apple Silicon, Intel Mac, Linux Debian and AppImage packages. Published installer hashes, sizes, exact source commit and workflow URL are recorded in [build-artifacts.json](build-artifacts.json); per-platform installed-app diagnostic reports accompany the release. [Distribution history](DISTRIBUTION.md) retains earlier qualification separately. The 0.4.1 candidate was withheld after the Mac installed-app readiness check failed. See [0.4.2](RELEASE-0.4.2.md) for the startup verification correction and published packages.
 
 No private audio, user project backups, model weights or generated separation audio are included in source control or release downloads. Optional models download from pinned upstream locations during explicit pack setup.

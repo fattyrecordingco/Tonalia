@@ -1,8 +1,14 @@
+# Current distribution
+
+For **Tonalia 0.4.2**, use the [release and verification record](RELEASE-0.4.2.md), [current installer metadata](build-artifacts.json) and [download instructions](../INSTALL.md). The records below preserve the earlier 0.1 and 0.2 qualification separately.
+
+---
+
 # Distribution and offline verification — 0.1.0
 
 **Published 15 October 2026.** [Official release](https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.1.0) · [Download/install guide](../INSTALL.md) · [Successful native build workflow](https://github.com/fattyrecordingco/Tonalia/actions/runs/38731999630).
 
-The release contains Windows x64 NSIS setup, separate Apple Silicon/Intel Mac DMGs, Linux amd64 Debian package and x86-64 AppImage. [Artifact sizes, SHA-256 hashes and source commit](build-artifacts.json) identify the exact published binaries. This is a development prerelease. Windows is unsigned; Mac packages are ad-hoc signed and not notarized. No binaries were substituted after their release checks.
+The release contains Windows x64 NSIS setup, separate Apple Silicon/Intel Mac DMGs, Linux amd64 Debian package and x86-64 AppImage. [Version 0.1 release files and checksums](https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.1.0) identify those historical binaries. This is a development prerelease. Windows is unsigned; Mac packages are ad-hoc signed and not notarized. No binaries were substituted after their release checks.
 
 ## Native build and installed-package checks
 

@@ -5,20 +5,51 @@ import { isNative, type Layer } from './types';
 
 /** Opt-in installed-package check. Normal launches create no worker or report here. */
 export async function verifyInstallation() {
-  if (!isNative() || !(await invoke<boolean>('installation_check_enabled'))) return;
-  const engine = new AudioEngine();
+  if (!isNative()) return;
+  const frontendErrors: string[] = [];
+  const captureError = (event: ErrorEvent) => frontendErrors.push(event.message);
+  const captureRejection = (event: PromiseRejectionEvent) =>
+    frontendErrors.push(String(event.reason));
+  window.addEventListener('error', captureError);
+  window.addEventListener('unhandledrejection', captureRejection);
+  const detach = () => {
+    window.removeEventListener('error', captureError);
+    window.removeEventListener('unhandledrejection', captureRejection);
+  };
+  if (!(await invoke<boolean>('installation_check_enabled'))) {
+    detach();
+    return;
+  }
+  let engine: AudioEngine | undefined;
   const report: Record<string, unknown> = {
     version,
     timestamp: new Date().toISOString(),
     userAgent: navigator.userAgent,
     origin: location.origin,
+    frontendErrors,
     passed: false,
   };
   try {
-    await new Promise<void>((resolve) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-    );
-    if (!document.querySelector('.app')) throw new Error('The React workspace did not mount.');
+    // React's concurrent first commit can occur after several WebKit frames.
+    // Observe the actual workspace instead of racing a fixed number of paints.
+    await new Promise<void>((resolve, reject) => {
+      const root = document.getElementById('root')!;
+      const observer = new MutationObserver(check);
+      const timer = window.setTimeout(() => {
+        observer.disconnect();
+        reject(new Error('The React workspace did not mount within 15 seconds.'));
+      }, 15000);
+      function check() {
+        if (root.querySelector('.app')) {
+          observer.disconnect();
+          window.clearTimeout(timer);
+          resolve();
+        }
+      }
+      observer.observe(root, { childList: true, subtree: true });
+      check();
+    });
+    engine = new AudioEngine();
     const rate = 48000,
       frames = rate * 2;
     const buffer = new ArrayBuffer(44 + frames * 8);
@@ -139,6 +170,8 @@ export async function verifyInstallation() {
       neuralDifference,
       neuralRenderMs: performance.now() - started,
     };
+    if (frontendErrors.length)
+      throw new Error(`Frontend startup errors: ${frontendErrors.join('; ')}`);
     Object.assign(report, {
       passed: true,
       frontendMounted: true,
@@ -153,7 +186,8 @@ export async function verifyInstallation() {
   } catch (error) {
     report.error = String(error);
   } finally {
-    engine.dispose();
+    detach();
+    engine?.dispose();
     await invoke('finish_installation_check', { report });
   }
 }

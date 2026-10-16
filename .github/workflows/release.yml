@@ -7,7 +7,7 @@ on:
       tag:
         description: 'Existing release tag, matching the package version'
         required: true
-        default: 'v0.4.1'
+        default: 'v0.4.2'
 permissions:
   contents: read
 concurrency:

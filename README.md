@@ -4,25 +4,25 @@
 
 [Tonalia website](https://fattyrecordingco.github.io/Tonalia/) · [Illustrated user guide](https://fattyrecordingco.github.io/Tonalia/guide/) · [Browser editor](https://fattyrecordingco.github.io/Tonalia/app/)
 
-The current source is Tonalia 0.4.1, with a shared Rust audio core, a React/TypeScript workspace, desktop packages for Windows/macOS/Linux, and a browser client using the same DSP through WebAssembly. It is an incremental implementation of the [master plan](docs/planning/README.md), not a completed Audition replacement.
+The current source is Tonalia 0.4.2, with a shared Rust audio core, a React/TypeScript workspace, desktop packages for Windows/macOS/Linux, and a browser client using the same DSP through WebAssembly. It is an incremental implementation of the [master plan](docs/planning/README.md), not a completed Audition replacement.
 
-Version 0.4.1 adds automatic sound discovery and extraction, analysis-driven suggestions, joint spectral cleanup, **Separate sounds**, noise-profile reduction, improved brushes, WAV drag and drop, vertical frequency navigation, and Removed-signal export. Dense brushes now evaluate only their supported FFT bins, and playback recovers brief queue gaps without skipping source samples. AI separation is desktop-only and uses optional local packs; the other editing additions also work in the browser.
+Version 0.4.2 adds automatic sound discovery and extraction, analysis-driven suggestions, joint spectral cleanup, **Separate sounds**, noise-profile reduction, improved brushes, WAV drag and drop, vertical frequency navigation, and Removed-signal export. Dense brushes now evaluate only their supported FFT bins, and playback recovers brief queue gaps without skipping source samples. AI separation is desktop-only and uses optional local packs; the other editing additions also work in the browser.
 
 ## Download the desktop app
 
-Installers are published on the [Tonalia 0.4.1 release page](https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.4.1). No developer tools or account are needed. Editing works offline after installation.
+Installers are published on the [Tonalia 0.4.2 release page](https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.4.2). No developer tools or account are needed. Editing works offline after installation.
 
 | Your computer | Direct installer |
 | --- | --- |
-| Windows 11 x64, Intel/AMD | [Windows setup.exe](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_windows_x64_setup.exe) |
-| Mac Apple Silicon, macOS 13+ | [Apple Silicon DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_macos_apple_silicon.dmg) |
-| Mac Intel, macOS 13+ | [Intel DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_macos_intel.dmg) |
-| Ubuntu 22.04+/compatible Debian, x86-64 | [Linux .deb](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_linux_amd64.deb) |
-| Other compatible Linux desktops, x86-64 | [Linux AppImage](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.1/Tonalia_0.4.1_linux_x86_64.AppImage) |
+| Windows 11 x64, Intel/AMD | [Windows setup.exe](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/Tonalia_0.4.2_windows_x64_setup.exe) |
+| Mac Apple Silicon, macOS 13+ | [Apple Silicon DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/Tonalia_0.4.2_macos_apple_silicon.dmg) |
+| Mac Intel, macOS 13+ | [Intel DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/Tonalia_0.4.2_macos_intel.dmg) |
+| Ubuntu 22.04+/compatible Debian, x86-64 | [Linux .deb](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/Tonalia_0.4.2_linux_amd64.deb) |
+| Other compatible Linux desktops, x86-64 | [Linux AppImage](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/Tonalia_0.4.2_linux_x86_64.AppImage) |
 
 See [installation, chip selection, offline use and checksum instructions](docs/INSTALL.md). These are development builds: Windows is unsigned and Mac builds are ad-hoc signed without Apple notarization. The Windows setup includes the WebView2 offline installer. Linux prerequisites must be available locally for a fully offline installation.
 
-The release workflow checks the shared DSP and browser editor, installs each native package, and runs packaged analysis/restoration diagnostics before publishing. See the [0.4.1 verification record](docs/implementation/RELEASE-0.4.1.md) and [distribution history](docs/implementation/DISTRIBUTION.md) for scope and evidence.
+The release workflow checks the shared DSP and browser editor, installs each native package, and runs packaged analysis/restoration diagnostics before publishing. See the [0.4.2 verification record](docs/implementation/RELEASE-0.4.2.md) and [distribution history](docs/implementation/DISTRIBUTION.md) for scope and evidence.
 
 ## What works
 
@@ -44,7 +44,7 @@ The release workflow checks the shared DSP and browser editor, installs each nat
 - Recover recent local layer checkpoints from History. Use the Shortcuts guide and mouse/trackpad zoom to navigate.
 - Host or join an optional LAN editing session with source identity checks, ordered revisions and explicit conflict rejection. Audio remains local.
 
-All audio processing is local. There is no account requirement or audio upload service. [Current release and verification](docs/implementation/RELEASE-0.4.1.md) · [Earlier DSP algorithms](docs/implementation/RELEASE-0.2.md).
+All audio processing is local. There is no account requirement or audio upload service. [Current release and verification](docs/implementation/RELEASE-0.4.2.md) · [Earlier DSP algorithms](docs/implementation/RELEASE-0.2.md).
 
 ## Run from source
 
@@ -76,7 +76,7 @@ npm run build
 npm run desktop:build
 ```
 
-The Windows installer is written to `target/release/bundle/nsis/Tonalia_0.4.1_x64-setup.exe`. The standalone application is `target/release/tonalia-desktop.exe`; it also accepts a WAV path as its first command-line argument. Platform configurations build Windows NSIS, macOS DMG, and Linux Debian/AppImage packages. The release workflow builds separate Apple Silicon and Intel packages on native Mac runners. See [installation instructions](docs/INSTALL.md) for supported baselines and signing limits.
+The Windows installer is written to `target/release/bundle/nsis/Tonalia_0.4.2_x64-setup.exe`. The standalone application is `target/release/tonalia-desktop.exe`; it also accepts a WAV path as its first command-line argument. Platform configurations build Windows NSIS, macOS DMG, and Linux Debian/AppImage packages. The release workflow builds separate Apple Silicon and Intel packages on native Mac runners. See [installation instructions](docs/INSTALL.md) for supported baselines and signing limits.
 
 ## Make a reversible edit
 

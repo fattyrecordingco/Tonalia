@@ -1,5 +1,11 @@
 # Current release status
 
+**0.4.2 development release.** Desktop sound discovery/extraction, local music stems, spectral cleanup and transient extraction join captured-profile noise reduction, continuous brushes, vertical frequency navigation, WAV drag and drop, and separate Result/Removed/Original export. Dense-brush rendering now culls unsupported bins; desktop/browser playback recover short queue gaps without skipping samples. AI separation requires optional desktop packs; the other editor additions also run in the browser.
+
+Local checks passed: **25 core**, **5 desktop**, **11 real-model Python**, **17 browser editor**, and **25 website/Pages-path checks**, plus packaged native brush playback, export/source protection, separation and two-process co-editing. See [0.4.2 behavior and verification](RELEASE-0.4.2.md), [machine-readable checks](checks-0.4.1.json), [current installer metadata](build-artifacts.json) and [installation guide](../INSTALL.md). These are development checks, not Audition parity or professional hardware/latency qualification.
+
+## Earlier 0.2 release record
+
 **0.2.0 development release.** Navigation, initial restoration, offline neural denoising, local recovery and optional LAN sessions are implemented. See [0.2 behavior, algorithms, test coverage and remaining work](RELEASE-0.2.md). No complete roadmap phase or Audition parity is asserted. Installer publication and installed verification are recorded in release reports.
 
 Local pre-release validation: **22 core numerical tests passed** (17 existing + 5 restoration), **3 native tests passed** (LAN protocol and render-cache contracts), **12 browser integration tests passed**. The browser suite covers offline neural rendering and recovery across reload. The Windows native workflow also passed actual CPAL playback, native gate/neural export, exact untouched-channel preservation, source protection, LAN acknowledgment/conflict/source-token checks and an accepted peer edit visible in the UI with external WebView internet blocked. The published Windows installer, Debian package and FUSE AppImage subsequently passed owner-machine offline checks. Native Windows Open/Export/Save dialogs and two installed Windows co-editing processes passed; all five public installer links returned HTTP 200 without authentication. See [0.2 distribution evidence](DISTRIBUTION.md).
