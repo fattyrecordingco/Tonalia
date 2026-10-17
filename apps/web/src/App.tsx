@@ -15,6 +15,7 @@ import {
   Download,
   Eye,
   EyeOff,
+  Eraser,
   FileAudio,
   FolderOpen,
   Hand,
@@ -70,6 +71,7 @@ const tools: { id: Tool; label: string; key: string; icon: typeof Brush }[] = [
   { id: 'rectangle', label: 'Frequency rectangle', key: 'M', icon: SquareDashed },
   { id: 'lasso', label: 'Lasso selection', key: 'L', icon: Lasso },
   { id: 'brush', label: 'Spectral brush', key: 'B', icon: Brush },
+  { id: 'eraser', label: 'Selection eraser', key: 'E', icon: Eraser },
   { id: 'hand', label: 'Pan canvas', key: 'H', icon: Hand },
 ];
 function sourceName(source: SourceRef) {
@@ -83,7 +85,8 @@ function readProject(text: string): Project {
     p.format !== 'tonalia' ||
     !(
       (p.schema === 1 && p.engine === 'spectral-gain-v1') ||
-      (p.schema === 2 && p.engine === 'spectral-edit-v2')
+      (p.schema === 2 && p.engine === 'spectral-edit-v2') ||
+      (p.schema === 3 && p.engine === 'spectral-edit-v3')
     ) ||
     p.fftSize !== 2048
   )
@@ -143,6 +146,8 @@ export default function App() {
     [brushSize, setBrushSize] = useState(34),
     [opacity, setOpacity] = useState(0.7);
   const [hardness, setHardness] = useState(0.3);
+  const [eraserOpacity, setEraserOpacity] = useState(1);
+  const [eraserHardness, setEraserHardness] = useState(0.65);
   const [noiseProfile, setNoiseProfile] = useState<number[] | null>(null);
   const [capturingNoise, setCapturingNoise] = useState(false);
   const [sensitivity, setSensitivity] = useState(3);
@@ -358,8 +363,8 @@ export default function App() {
       info && fingerprint
         ? {
             format: 'tonalia',
-            schema: 2,
-            engine: 'spectral-edit-v2',
+            schema: 3,
+            engine: 'spectral-edit-v3',
             fftSize: 2048,
             source: {
               name: nameRef.current,
@@ -700,8 +705,8 @@ export default function App() {
     }
     const project: Project = {
       format: 'tonalia',
-      schema: 2,
-      engine: 'spectral-edit-v2',
+      schema: 3,
+      engine: 'spectral-edit-v3',
       fftSize: 2048,
       source: {
         name: nameRef.current,
@@ -1129,12 +1134,12 @@ export default function App() {
           ))}
         </div>
         <span className="tool-name">{tools.find((t) => t.id === tool)?.label}</span>
-        {tool === 'brush' && (
+        {(tool === 'brush' || tool === 'eraser') && (
           <>
             <label className="inline-control">
               Size
               <input
-                aria-label="Brush diameter"
+                aria-label={tool === 'eraser' ? 'Eraser diameter' : 'Brush diameter'}
                 type="range"
                 min="2"
                 max="160"
@@ -1146,28 +1151,32 @@ export default function App() {
             <label className="inline-control">
               Hardness
               <input
-                aria-label="Brush hardness"
+                aria-label={tool === 'eraser' ? 'Eraser hardness' : 'Brush hardness'}
                 type="range"
                 min="0"
                 max="1"
                 step="0.05"
-                value={hardness}
-                onChange={(e) => setHardness(+e.target.value)}
+                value={tool === 'eraser' ? eraserHardness : hardness}
+                onChange={(e) =>
+                  (tool === 'eraser' ? setEraserHardness : setHardness)(+e.target.value)
+                }
               />
-              <span>{Math.round(hardness * 100)}%</span>
+              <span>{Math.round((tool === 'eraser' ? eraserHardness : hardness) * 100)}%</span>
             </label>
             <label className="inline-control">
               Opacity
               <input
-                aria-label="Brush opacity"
+                aria-label={tool === 'eraser' ? 'Eraser opacity' : 'Brush opacity'}
                 type="range"
                 min="0.1"
                 max="1"
                 step="0.05"
-                value={opacity}
-                onChange={(e) => setOpacity(+e.target.value)}
+                value={tool === 'eraser' ? eraserOpacity : opacity}
+                onChange={(e) =>
+                  (tool === 'eraser' ? setEraserOpacity : setOpacity)(+e.target.value)
+                }
               />
-              <span>{Math.round(opacity * 100)}%</span>
+              <span>{Math.round((tool === 'eraser' ? eraserOpacity : opacity) * 100)}%</span>
             </label>
           </>
         )}
@@ -1413,6 +1422,12 @@ export default function App() {
             analysis={analysis}
             overview={overview}
             selection={selection}
+            selectionIsLayer={!!selectedId}
+            onSelectionLimit={() =>
+              notify(
+                'Selection limit reached (128 gestures / 32,768 points). Create a layer or undo a selection stroke.',
+              )
+            }
             layers={layers}
             tool={tool}
             position={position}
@@ -1420,10 +1435,13 @@ export default function App() {
             ceiling={ceiling}
             pending={pending}
             brushSize={brushSize}
-            opacity={opacity}
-            hardness={hardness}
+            opacity={tool === 'eraser' ? eraserOpacity : opacity}
+            hardness={tool === 'eraser' ? eraserHardness : hardness}
             channel={channel}
-            onSelection={setRegion}
+            onSelection={(mask) => {
+              setSelection(mask);
+              if (tool !== 'eraser') setSelectedId(null);
+            }}
             onView={setView}
             onSeek={seek}
             onCursor={setCursor}
@@ -1490,18 +1508,44 @@ export default function App() {
                         ? 'Time–frequency range'
                         : selection.shape.kind === 'polygon'
                           ? 'Freeform lasso'
-                          : 'Weighted brush'
+                          : selection.shape.kind === 'composite'
+                            ? `Combined selection · ${selection.shape.operations.length} gestures`
+                            : 'Weighted brush'
                       : 'Make a selection on the canvas'}
                   </span>
+                  {selection?.shape.kind === 'composite' && !selectedId && (
+                    <button
+                      className="text-button"
+                      onClick={() => {
+                        if (selection.shape.kind !== 'composite') return;
+                        const operations = selection.shape.operations.slice(0, -1);
+                        setRegion(
+                          operations.length === 1
+                            ? operations[0].mask
+                            : { ...selection, shape: { kind: 'composite', operations } },
+                        );
+                      }}
+                    >
+                      Undo selection stroke
+                    </button>
+                  )}
                   {selection && (
                     <button className="text-button" onClick={() => setRegion(null)}>
                       Clear
                     </button>
                   )}
                 </div>
+                {selection?.shape.kind === 'composite' && (
+                  <p className="caption">
+                    Keep drawing to add, or use Eraser (E) to subtract. Each gesture keeps its brush
+                    settings and channel. Clear to start again; bounds summarize the combined
+                    selection.
+                  </p>
+                )}
                 <div className="field-grid">
                   <NumberField
                     label="Start"
+                    disabled={selection?.shape.kind === 'composite'}
                     value={bounds.start / (info?.sampleRate || 48000)}
                     min={0}
                     max={(info?.frames || 48000) / (info?.sampleRate || 48000)}
@@ -1510,6 +1554,7 @@ export default function App() {
                   />
                   <NumberField
                     label="End"
+                    disabled={selection?.shape.kind === 'composite'}
                     value={bounds.end / (info?.sampleRate || 48000)}
                     min={0}
                     max={(info?.frames || 48000) / (info?.sampleRate || 48000)}
@@ -1518,6 +1563,7 @@ export default function App() {
                   />
                   <NumberField
                     label="Low frequency"
+                    disabled={selection?.shape.kind === 'composite'}
                     value={bounds.low}
                     min={0}
                     max={info ? info.sampleRate / 2 : 24000}
@@ -1527,6 +1573,7 @@ export default function App() {
                   />
                   <NumberField
                     label="High frequency"
+                    disabled={selection?.shape.kind === 'composite'}
                     value={bounds.high}
                     min={0}
                     max={info ? info.sampleRate / 2 : 24000}
@@ -1543,7 +1590,23 @@ export default function App() {
                     onChange={(e) => {
                       const c = e.target.value === 'linked' ? null : +e.target.value;
                       setChannel(c);
-                      setSelection((s) => (s ? { ...s, channel: c } : s));
+                      setSelection((s) => {
+                        if (!s || (!selectedId && s.shape.kind !== 'rectangle')) return s;
+                        return {
+                          ...s,
+                          channel: c,
+                          shape:
+                            s.shape.kind === 'composite'
+                              ? {
+                                  ...s.shape,
+                                  operations: s.shape.operations.map((op) => ({
+                                    ...op,
+                                    mask: { ...op.mask, channel: c },
+                                  })),
+                                }
+                              : s.shape,
+                        };
+                      });
                     }}
                   >
                     <option value="linked">
@@ -1604,7 +1667,9 @@ export default function App() {
                   </div>
                   <div className="field-grid feather-fields">
                     <NumberField
-                      disabled={selection?.shape.kind === 'brush'}
+                      disabled={
+                        selection?.shape.kind === 'brush' || selection?.shape.kind === 'composite'
+                      }
                       label="Time feather"
                       value={
                         ((selection?.featherTime ?? (info?.sampleRate || 48000) * 0.005) /
@@ -1622,7 +1687,9 @@ export default function App() {
                       }
                     />
                     <NumberField
-                      disabled={selection?.shape.kind === 'brush'}
+                      disabled={
+                        selection?.shape.kind === 'brush' || selection?.shape.kind === 'composite'
+                      }
                       label="Frequency feather"
                       value={selection?.featherHz ?? (info?.sampleRate || 48000) / 2048}
                       min={0}
@@ -2375,7 +2442,7 @@ export default function App() {
         <dl className="shortcut-list">
           {[
             ['Space', 'Play / stop'],
-            ['T / M / L / B / H', 'Time / rectangle / lasso / brush / hand'],
+            ['T / M / L / B / E / H', 'Time / rectangle / lasso / brush / eraser / hand'],
             ['+ / −', 'Zoom time in / out'],
             ['0 or Shift+1', 'Fit source'],
             ['Shift+2', 'Fit selection'],

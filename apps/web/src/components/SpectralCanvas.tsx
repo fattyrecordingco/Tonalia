@@ -5,6 +5,7 @@ import {
   useMemo,
   useCallback,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
 } from 'react';
 import {
   AudioLines,
@@ -16,8 +17,8 @@ import {
   ArrowUp,
   ArrowDown,
 } from 'lucide-react';
-import type { WavInfo, View, Mask, Layer, Tool, Point, Analysis } from '../types';
-import { formatHz, formatTime, maskBounds } from '../types';
+import type { WavInfo, View, Mask, Layer, Tool, Point, Analysis, PrimitiveShape } from '../types';
+import { formatHz, formatTime, maskBounds, combineSelection, selectionBudget } from '../types';
 import { clampView, zoomTime, zoomFrequency, panFrequency } from '../engine/navigation';
 import { GpuSpectrogram } from '../engine/gpu-spectrogram';
 export interface Overview {
@@ -31,6 +32,8 @@ interface Props {
   analysis: Analysis | null;
   overview: Overview | null;
   selection: Mask | null;
+  selectionIsLayer: boolean;
+  onSelectionLimit: () => void;
   layers: Layer[];
   tool: Tool;
   position: number;
@@ -90,7 +93,8 @@ export function SpectralCanvas(p: Props) {
   const gesture = useRef<{
     origin: Point;
     points: Point[];
-    mask: Mask | null;
+    mask: (Mask & { shape: PrimitiveShape }) | null;
+    base: Mask | null;
     view: View;
     x: number;
     y: number;
@@ -396,7 +400,7 @@ export function SpectralCanvas(p: Props) {
     root.current?.focus({ preventScroll: true });
     const kind = e.button === 1 || p.tool === 'hand' ? 'hand' : p.tool;
     if (
-      kind === 'brush' &&
+      (kind === 'brush' || kind === 'eraser') &&
       (v.y < spectralTop || v.y >= spectralTop + laneHeight * p.info.channels)
     )
       return;
@@ -405,6 +409,7 @@ export function SpectralCanvas(p: Props) {
       origin: v.p,
       points: [v.p],
       mask: null,
+      base: p.selectionIsLayer && kind !== 'eraser' ? null : p.selection,
       view: p.view,
       x: v.x,
       y: v.y,
@@ -412,9 +417,9 @@ export function SpectralCanvas(p: Props) {
       channel: v.ch,
       moved: false,
     };
-    if (kind === 'brush') {
+    if (kind === 'brush' || kind === 'eraser') {
       const { radiusTime, radiusHz } = brushRadii(v.p.hz);
-      const mask: Mask = {
+      const mask: Mask & { shape: PrimitiveShape } = {
         shape: {
           kind: 'brush',
           points: [v.p],
@@ -428,7 +433,7 @@ export function SpectralCanvas(p: Props) {
         featherHz: 0,
       };
       gesture.current.mask = mask;
-      p.onSelection(mask);
+      updateSelection(gesture.current, mask);
     }
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     setDrawing(true);
@@ -464,8 +469,8 @@ export function SpectralCanvas(p: Props) {
       );
       return;
     }
-    let shape: Mask['shape'];
-    if (g.kind === 'brush' && g.mask?.shape.kind === 'brush') {
+    let shape: PrimitiveShape;
+    if ((g.kind === 'brush' || g.kind === 'eraser') && g.mask?.shape.kind === 'brush') {
       const s = g.mask.shape;
       const last = s.points[s.points.length - 1];
       const distance = Math.hypot(
@@ -492,14 +497,25 @@ export function SpectralCanvas(p: Props) {
         high: full ? p.info.sampleRate / 2 : Math.max(g.origin.hz, v.p.hz),
       };
     }
-    const mask: Mask = {
+    const mask: Mask & { shape: PrimitiveShape } = {
       shape,
       channel: p.channel,
       featherTime: shape.kind === 'brush' ? 0 : p.info.sampleRate * 0.005,
       featherHz: shape.kind === 'brush' ? 0 : p.info.sampleRate / 2048,
     };
     g.mask = mask;
-    p.onSelection(mask);
+    updateSelection(g, mask);
+  };
+  const updateSelection = (
+    g: NonNullable<typeof gesture.current>,
+    mask: Mask & { shape: PrimitiveShape },
+  ) => {
+    const next = combineSelection(g.base, mask, g.kind === 'eraser' ? 'subtract' : 'add');
+    if (next && !selectionBudget(next)) {
+      p.onSelectionLimit();
+      return;
+    }
+    p.onSelection(next);
   };
   const brushRadii = (hz: number) => ({
     radiusTime: Math.max(
@@ -524,11 +540,12 @@ export function SpectralCanvas(p: Props) {
     gesture.current = null;
     setDrawing(false);
     if (!g) return;
-    if (!g.moved && g.kind !== 'brush') {
+    if (!g.moved && g.kind !== 'brush' && g.kind !== 'eraser') {
+      p.onSelection(g.base);
       p.onSeek(g.origin.sample);
       return;
     }
-    if (g.kind === 'lasso' && g.points.length < 3) p.onSelection(null);
+    if (g.kind === 'lasso' && g.points.length < 3) p.onSelection(g.base);
   };
   const ticks = useMemo(() => {
     const span = (p.view.end - p.view.start) / (p.info?.sampleRate || 48000);
@@ -562,15 +579,65 @@ export function SpectralCanvas(p: Props) {
     for (let f = Math.ceil(p.view.low / step) * step; f <= p.view.high; f += step) ticks.push(f);
     return ticks;
   }, [p.view.low, p.view.high, p.view.log]);
-  const maskPath = (m: Mask, ch: number, key: string, selected: boolean) => {
+  const maskPath = (
+    m: Mask,
+    ch: number,
+    key: string,
+    selected: boolean,
+    coverage?: 'white' | 'black',
+  ): ReactNode => {
     if (m.channel !== null && m.channel !== ch) return null;
     const s = m.shape;
-    const color = selected ? '#b0efdc' : '#aec4e9';
+    const color = coverage || (selected ? '#b0efdc' : '#aec4e9');
+    if (s.kind === 'composite') {
+      const id = `selection-mask-${key}-${ch}`;
+      return (
+        <g key={key} data-testid={selected ? 'composite-selection' : undefined}>
+          <defs>
+            <mask
+              id={id}
+              maskUnits="userSpaceOnUse"
+              x={LEFT}
+              y={spectralTop + ch * laneHeight}
+              width={width}
+              height={laneHeight}
+              style={{ maskType: 'luminance' }}
+            >
+              <rect
+                x={LEFT}
+                y={spectralTop + ch * laneHeight}
+                width={width}
+                height={laneHeight}
+                fill="black"
+              />
+              {s.operations.map((op, i) =>
+                maskPath(
+                  op.mask,
+                  ch,
+                  `${key}-op-${i}`,
+                  true,
+                  op.mode === 'add' ? 'white' : 'black',
+                ),
+              )}
+            </mask>
+          </defs>
+          <rect
+            x={LEFT}
+            y={spectralTop + ch * laneHeight}
+            width={width}
+            height={laneHeight}
+            fill={color}
+            fillOpacity={selected ? 0.22 : 0.06}
+            mask={`url(#${id})`}
+          />
+        </g>
+      );
+    }
     const common = {
       stroke: color,
       fill: color,
-      fillOpacity: selected ? 0.12 : 0.035,
-      strokeOpacity: selected ? 0.95 : 0.36,
+      fillOpacity: coverage ? 1 : selected ? 0.12 : 0.035,
+      strokeOpacity: coverage ? 0 : selected ? 0.95 : 0.36,
       strokeWidth: selected ? 1.2 : 0.8,
     };
     if (s.kind === 'rectangle') {
@@ -626,6 +693,38 @@ export function SpectralCanvas(p: Props) {
         }
         return paths.join(' ');
       };
+      if (coverage)
+        return (
+          <g key={key} fill={color}>
+            {Array.from({ length: s.hardness === 1 ? 1 : 12 }, (_, i) => {
+              const radius = 1 - i / 12;
+              const q = Math.min(1, (1 - radius + 1 / 24) / Math.max(1e-9, 1 - s.hardness!));
+              const alpha = s.opacity * q * q * (3 - 2 * q);
+              // Concentric opaque gray bands approximate the DSP's smooth falloff.
+              const v = Math.round(255 * (coverage === 'white' ? alpha : 1 - alpha));
+              return (
+                <path
+                  key={i}
+                  d={outline(radius)}
+                  fill={coverage === 'white' ? `rgb(${v},${v},${v})` : 'black'}
+                  fillOpacity={
+                    coverage === 'white'
+                      ? 1
+                      : (() => {
+                          const previousQ = Math.min(
+                            1,
+                            Math.max(0, 1 - radius - 1 / 24) / Math.max(1e-9, 1 - s.hardness!),
+                          );
+                          const previous = s.opacity * previousQ * previousQ * (3 - 2 * previousQ);
+                          return (alpha - previous) / Math.max(1e-9, 1 - previous);
+                        })()
+                  }
+                  style={{ mixBlendMode: coverage === 'white' ? 'lighten' : undefined }}
+                />
+              );
+            })}
+          </g>
+        );
       return (
         <g key={key} fill={color}>
           <path d={outline(1)} fillOpacity={selected ? s.opacity * 0.2 : 0.04} />
@@ -647,14 +746,32 @@ export function SpectralCanvas(p: Props) {
               rx={Math.max(1, tx(v.sample + s.radiusTime) - tx(v.sample))}
               ry={Math.max(1, (fy(v.hz - s.radiusHz, ch) - fy(v.hz + s.radiusHz, ch)) / 2)}
               stroke={color}
-              strokeOpacity={selected ? 0.25 : 0.08}
+              strokeOpacity={coverage ? 0 : selected ? 0.25 : 0.08}
               fill={color}
-              fillOpacity={selected ? s.opacity * 0.05 : 0.02}
+              fillOpacity={coverage ? s.opacity : selected ? s.opacity * 0.05 : 0.02}
             />
           ))}
       </g>
     );
   };
+  // Audio-clock and cursor updates reuse geometry. Dense committed masks only
+  // rebuild when the layer stack or viewport changes, not on every animation.
+  const layerOverlays = useMemo(
+    () =>
+      Array.from({ length: p.info?.channels || 0 }, (_, ch) =>
+        p.layers.filter((l) => l.enabled).map((l) => maskPath(l.mask, ch, l.id, false)),
+      ),
+    [p.layers, p.view, size, p.info],
+  );
+  const selectionOverlays = useMemo(
+    () =>
+      Array.from(
+        { length: p.info?.channels || 0 },
+        (_, ch) => p.selection && maskPath(p.selection, ch, 'selection', true),
+      ),
+    [p.selection, p.view, size, p.info],
+  );
+
   return (
     <div className="canvas-column">
       <div
@@ -904,9 +1021,9 @@ export function SpectralCanvas(p: Props) {
                   </g>
                 ))}
                 <g clipPath={`url(#lane-${ch})`}>
-                  {p.layers.filter((l) => l.enabled).map((l) => maskPath(l.mask, ch, l.id, false))}
-                  {p.selection && maskPath(p.selection, ch, 'selection', true)}
-                  {p.tool === 'brush' &&
+                  {layerOverlays[ch]}
+                  {selectionOverlays[ch]}
+                  {(p.tool === 'brush' || p.tool === 'eraser') &&
                     hover?.ch === ch &&
                     (() => {
                       const s = gesture.current?.mask?.shape;
@@ -935,7 +1052,9 @@ export function SpectralCanvas(p: Props) {
                                     2,
                                 )}
                                 fill="none"
-                                stroke={r === 1 ? '#e9fff6' : '#b0efdc'}
+                                stroke={
+                                  p.tool === 'eraser' ? '#ffc4ad' : r === 1 ? '#e9fff6' : '#b0efdc'
+                                }
                                 strokeWidth={1}
                                 strokeDasharray={r === 1 ? undefined : '2 3'}
                               />
@@ -1025,11 +1144,13 @@ export function SpectralCanvas(p: Props) {
           <MousePointer2 size={12} />{' '}
           {p.tool === 'hand'
             ? 'Drag to pan'
-            : p.tool === 'brush'
-              ? 'Paint a weighted selection'
-              : p.tool === 'lasso'
-                ? 'Draw around frequencies'
-                : 'Drag to select'}
+            : p.tool === 'eraser'
+              ? 'Erase from the pending selection'
+              : p.tool === 'brush'
+                ? 'Add brush strokes · Create gain layer when ready'
+                : p.tool === 'lasso'
+                  ? 'Draw around frequencies'
+                  : 'Drag to select'}
           <span className="shortcut-hint">
             Scroll / pinch to zoom · Shift + scroll to pan · Scroll Hz ruler to pan vertically · Alt
             to zoom Hz

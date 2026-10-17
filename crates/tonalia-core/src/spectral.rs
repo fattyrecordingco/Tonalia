@@ -10,6 +10,9 @@ pub struct Point {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Shape {
+    Composite {
+        operations: Vec<SelectionOperation>,
+    },
     Rectangle {
         start: f64,
         end: f64,
@@ -30,6 +33,17 @@ pub enum Shape {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         hardness: Option<f64>,
     },
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SelectionMode {
+    Add,
+    Subtract,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SelectionOperation {
+    pub mode: SelectionMode,
+    pub mask: Mask,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -63,6 +77,13 @@ fn ramp(distance: f64, width: f64) -> f64 {
 impl Mask {
     pub fn time_bounds(&self) -> (f64, f64) {
         let (a, b) = match &self.shape {
+            Shape::Composite { operations } => operations
+                .iter()
+                .filter(|op| matches!(op.mode, SelectionMode::Add))
+                .map(|op| op.mask.time_bounds())
+                .fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), (c, d)| {
+                    (a.min(c), b.max(d))
+                }),
             Shape::Rectangle { start, end, .. } => (*start, *end),
             Shape::Polygon { points } => points
                 .iter()
@@ -158,11 +179,58 @@ impl Mask {
         }
     }
 
+    // Allocate scratch once per rendered block, never once per stroke or FFT frame.
+    fn channel_frame_weights(
+        &self,
+        t: f64,
+        bin_hz: f64,
+        channel: u16,
+        weights: &mut [f64],
+        scratch: &mut [f64],
+    ) {
+        if self.channel.is_some_and(|c| c != channel) {
+            weights.fill(0.0);
+            return;
+        }
+        if let Shape::Composite { operations } = &self.shape {
+            weights.fill(0.0);
+            for op in operations {
+                if op.mask.channel.is_some_and(|c| c != channel) {
+                    continue;
+                }
+                let (start, end) = op.mask.time_bounds();
+                if t < start || t > end {
+                    continue;
+                }
+                op.mask.frame_weights(t, bin_hz, scratch);
+                for (w, value) in weights.iter_mut().zip(scratch.iter()) {
+                    *w = match op.mode {
+                        SelectionMode::Add => w.max(*value),
+                        SelectionMode::Subtract => *w * (1.0 - value),
+                    };
+                }
+            }
+        } else {
+            self.frame_weights(t, bin_hz, weights);
+        }
+    }
+    fn channel_dependent(&self) -> bool {
+        self.channel.is_some()
+            || matches!(&self.shape, Shape::Composite { operations } if operations.iter().any(|op| op.mask.channel.is_some()))
+    }
+
     pub fn weight(&self, t: f64, f: f64, channel: u16) -> f64 {
         if self.channel.is_some_and(|c| c != channel) {
             return 0.0;
         }
         match &self.shape {
+            Shape::Composite { operations } => operations.iter().fold(0.0_f64, |w, op| {
+                let value = op.mask.weight(t, f, channel);
+                match op.mode {
+                    SelectionMode::Add => w.max(value),
+                    SelectionMode::Subtract => w * (1.0 - value),
+                }
+            }),
             Shape::Rectangle {
                 start,
                 end,
@@ -260,14 +328,6 @@ pub fn validate_layers(
     if layers.len() > 64 {
         return Err("This release supports at most 64 spectral layers.".into());
     }
-    let valid_point = |p: &Point| {
-        p.sample.is_finite()
-            && p.hz.is_finite()
-            && p.sample >= 0.0
-            && p.sample <= frames as f64
-            && p.hz >= 0.0
-            && p.hz <= rate as f64 / 2.0
-    };
     let mut ids = std::collections::HashSet::new();
     for l in layers {
         if !ids.insert(&l.id) {
@@ -289,65 +349,35 @@ pub fn validate_layers(
         {
             return Err("Interpolation needs a source sample after the selection.".into());
         }
-        let m = &l.mask;
-        if !m.feather_time.is_finite()
-            || !m.feather_hz.is_finite()
-            || !(0.0..=rate as f64).contains(&m.feather_time)
-            || !(0.0..=rate as f64 / 2.0).contains(&m.feather_hz)
-            || m.channel.is_some_and(|c| c >= channels)
-        {
-            return Err("Invalid mask feather or channel scope.".into());
-        }
-        match &m.shape {
-            Shape::Rectangle {
-                start,
-                end,
-                low,
-                high,
-            } => {
-                if !valid_point(&Point {
-                    sample: *start,
-                    hz: *low,
-                }) || !valid_point(&Point {
-                    sample: *end,
-                    hz: *high,
-                }) || start >= end
-                    || low >= high
-                {
-                    return Err(
-                        "Selection must have positive duration and bandwidth within the source."
-                            .into(),
-                    );
-                }
+        if let Shape::Composite { operations } = &l.mask.shape {
+            if operations.is_empty()
+                || operations.len() > 128
+                || !matches!(operations[0].mode, SelectionMode::Add)
+                || l.mask.feather_time != 0.0
+                || l.mask.feather_hz != 0.0
+                || l.mask.channel.is_some_and(|c| c >= channels)
+            {
+                return Err(
+                    "Invalid composite selection (1–128 operations, starting with an addition)."
+                        .into(),
+                );
             }
-            Shape::Polygon { points } => {
-                if points.len() < 3 || points.len() > 4096 || !points.iter().all(valid_point) {
-                    return Err("Invalid lasso geometry (3–4096 points).".into());
-                }
+            let mut points = 0;
+            for op in operations {
+                validate_mask(&op.mask, frames, rate, channels)?;
+                points += match &op.mask.shape {
+                    Shape::Brush { points, .. } | Shape::Polygon { points } => points.len(),
+                    _ => 0,
+                };
             }
-            Shape::Brush {
-                points,
-                radius_time,
-                radius_hz,
-                opacity,
-                hardness,
-            } => {
-                if points.is_empty()
-                    || points.len() > 4096
-                    || !points.iter().all(valid_point)
-                    || !radius_time.is_finite()
-                    || !radius_hz.is_finite()
-                    || !opacity.is_finite()
-                    || !(1.0..=rate as f64 * 10.0).contains(radius_time)
-                    || !(0.01..=rate as f64 / 2.0).contains(radius_hz)
-                    || !(0.0..=1.0).contains(opacity)
-                    || hardness.is_some_and(|h| !h.is_finite() || !(0.0..=1.0).contains(&h))
-                {
-                    return Err("Invalid brush geometry, size or opacity.".into());
-                }
+            if points > 32768 {
+                return Err("A selection supports at most 32768 geometry points.".into());
             }
+        } else {
+            validate_mask(&l.mask, frames, rate, channels)?;
         }
     }
+
     if layers
         .iter()
         .filter(|l| {
@@ -360,6 +390,77 @@ pub fn validate_layers(
         > 1
     {
         return Err("This engine supports one neural speech layer per project.".into());
+    }
+    Ok(())
+}
+fn validate_mask(m: &Mask, frames: u64, rate: u32, channels: u16) -> Result<(), String> {
+    let valid_point = |p: &Point| {
+        p.sample.is_finite()
+            && p.hz.is_finite()
+            && p.sample >= 0.0
+            && p.sample <= frames as f64
+            && p.hz >= 0.0
+            && p.hz <= rate as f64 / 2.0
+    };
+
+    if !m.feather_time.is_finite()
+        || !m.feather_hz.is_finite()
+        || !(0.0..=rate as f64).contains(&m.feather_time)
+        || !(0.0..=rate as f64 / 2.0).contains(&m.feather_hz)
+        || m.channel.is_some_and(|c| c >= channels)
+    {
+        return Err("Invalid mask feather or channel scope.".into());
+    }
+    match &m.shape {
+        Shape::Composite { .. } => {
+            return Err("Nested selection operations are not supported.".into())
+        }
+        Shape::Rectangle {
+            start,
+            end,
+            low,
+            high,
+        } => {
+            if !valid_point(&Point {
+                sample: *start,
+                hz: *low,
+            }) || !valid_point(&Point {
+                sample: *end,
+                hz: *high,
+            }) || start >= end
+                || low >= high
+            {
+                return Err(
+                    "Selection must have positive duration and bandwidth within the source.".into(),
+                );
+            }
+        }
+        Shape::Polygon { points } => {
+            if points.len() < 3 || points.len() > 4096 || !points.iter().all(valid_point) {
+                return Err("Invalid lasso geometry (3–4096 points).".into());
+            }
+        }
+        Shape::Brush {
+            points,
+            radius_time,
+            radius_hz,
+            opacity,
+            hardness,
+        } => {
+            if points.is_empty()
+                || points.len() > 4096
+                || !points.iter().all(valid_point)
+                || !radius_time.is_finite()
+                || !radius_hz.is_finite()
+                || !opacity.is_finite()
+                || !(1.0..=rate as f64 * 10.0).contains(radius_time)
+                || !(0.01..=rate as f64 / 2.0).contains(radius_hz)
+                || !(0.0..=1.0).contains(opacity)
+                || hardness.is_some_and(|h| !h.is_finite() || !(0.0..=1.0).contains(&h))
+            {
+                return Err("Invalid brush geometry, size or opacity.".into());
+            }
+        }
     }
     Ok(())
 }
@@ -459,19 +560,22 @@ impl Analyzer {
         // Periodic Hann squared at 75% overlap sums to 3/2, including zero-extended support frames.
         let normalization = 1.5 * self.n as f64;
         let mut mask_weights = vec![0.0; self.n / 2 + 1];
+        let mut mask_scratch = vec![0.0; self.n / 2 + 1];
+        let channel_dependent = layer.mask.channel_dependent();
         for m in first..=last {
             let center = m * hop;
             let start = center - half;
-            layer.mask.frame_weights(
-                center as f64,
-                rate as f64 / self.n as f64,
-                &mut mask_weights,
-            );
-            if mask_weights.iter().all(|w| *w == 0.0) {
-                continue;
-            }
             for ch in 0..channels {
-                if layer.mask.channel.is_some_and(|c| c as usize != ch) {
+                if ch == 0 || channel_dependent {
+                    layer.mask.channel_frame_weights(
+                        center as f64,
+                        rate as f64 / self.n as f64,
+                        ch as u16,
+                        &mut mask_weights,
+                        &mut mask_scratch,
+                    );
+                }
+                if mask_weights.iter().all(|w| *w == 0.0) {
                     continue;
                 }
                 for i in 0..self.n {
@@ -590,6 +694,80 @@ pub fn render_layers(
 #[cfg(test)]
 mod brush_frame_tests {
     use super::*;
+    #[test]
+    fn composite_frame_weights_match_scalar_across_channels_and_soft_edges() {
+        let brush = |channel, opacity| Mask {
+            shape: Shape::Brush {
+                points: vec![
+                    Point {
+                        sample: 4000.0,
+                        hz: 1200.0,
+                    },
+                    Point {
+                        sample: 8000.0,
+                        hz: 3400.0,
+                    },
+                ],
+                radius_time: 1800.0,
+                radius_hz: 700.0,
+                opacity,
+                hardness: Some(0.3),
+            },
+            channel,
+            feather_time: 0.0,
+            feather_hz: 0.0,
+        };
+        let mask = Mask {
+            shape: Shape::Composite {
+                operations: vec![
+                    SelectionOperation {
+                        mode: SelectionMode::Add,
+                        mask: brush(None, 0.8),
+                    },
+                    SelectionOperation {
+                        mode: SelectionMode::Subtract,
+                        mask: brush(Some(0), 0.6),
+                    },
+                    SelectionOperation {
+                        mode: SelectionMode::Add,
+                        mask: Mask {
+                            shape: Shape::Rectangle {
+                                start: 5000.0,
+                                end: 9000.0,
+                                low: 1000.0,
+                                high: 4000.0,
+                            },
+                            channel: Some(1),
+                            feather_time: 200.0,
+                            feather_hz: 100.0,
+                        },
+                    },
+                ],
+            },
+            channel: None,
+            feather_time: 0.0,
+            feather_hz: 0.0,
+        };
+        for channel in 0..2 {
+            for t in [0.0, 2199.0, 4000.0, 4900.0, 5100.0, 6000.0, 9000.0, 11000.0] {
+                let mut weights = vec![0.0; 1025];
+                let mut scratch = vec![0.0; 1025];
+                mask.channel_frame_weights(
+                    t,
+                    48000.0 / 2048.0,
+                    channel,
+                    &mut weights,
+                    &mut scratch,
+                );
+                for (k, w) in weights.iter().enumerate() {
+                    assert!(
+                        (w - mask.weight(t, k as f64 * 48000.0 / 2048.0, channel)).abs() < 1e-11,
+                        "t={t} bin={k} ch={channel}"
+                    );
+                }
+            }
+        }
+    }
     #[test]
     fn indexed_brush_matches_reference_without_changing_legacy_strokes() {
         for hardness in [None, Some(0.0), Some(0.5), Some(1.0)] {

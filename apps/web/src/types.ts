@@ -13,7 +13,7 @@ export interface Point {
   sample: number;
   hz: number;
 }
-export type Shape =
+export type PrimitiveShape =
   | { kind: 'rectangle'; start: number; end: number; low: number; high: number }
   | { kind: 'polygon'; points: Point[] }
   | {
@@ -24,6 +24,11 @@ export type Shape =
       opacity: number;
       hardness?: number;
     };
+export type Shape = PrimitiveShape | { kind: 'composite'; operations: SelectionOperation[] };
+export interface SelectionOperation {
+  mode: 'add' | 'subtract';
+  mask: Mask & { shape: PrimitiveShape };
+}
 export interface Mask {
   shape: Shape;
   channel: number | null;
@@ -76,7 +81,7 @@ export interface Analysis {
   channels: number;
   sampleRate: number;
 }
-export type Tool = 'time' | 'rectangle' | 'lasso' | 'brush' | 'hand';
+export type Tool = 'time' | 'rectangle' | 'lasso' | 'brush' | 'eraser' | 'hand';
 export type Monitor = 'result' | 'original' | 'removed';
 export type SourceRef =
   { kind: 'browser'; file: File } | { kind: 'native'; id: string; name: string; size: number };
@@ -90,8 +95,8 @@ export interface ScanEvent {
 }
 export interface Project {
   format: 'tonalia';
-  schema: 1 | 2;
-  engine: 'spectral-gain-v1' | 'spectral-edit-v2';
+  schema: 1 | 2 | 3;
+  engine: 'spectral-gain-v1' | 'spectral-edit-v2' | 'spectral-edit-v3';
   fftSize: 2048;
   source: {
     name: string;
@@ -109,6 +114,15 @@ export const isNative = () => '__TAURI_INTERNALS__' in window;
 export function maskBounds(mask: Mask): { start: number; end: number; low: number; high: number } {
   const s = mask.shape;
   if (s.kind === 'rectangle') return s;
+  if (s.kind === 'composite') {
+    const bounds = s.operations.filter((op) => op.mode === 'add').map((op) => maskBounds(op.mask));
+    return {
+      start: Math.min(...bounds.map((b) => b.start)),
+      end: Math.max(...bounds.map((b) => b.end)),
+      low: Math.min(...bounds.map((b) => b.low)),
+      high: Math.max(...bounds.map((b) => b.high)),
+    };
+  }
   const p = s.points;
   const rt = s.kind === 'brush' ? s.radiusTime : 0;
   const rf = s.kind === 'brush' ? s.radiusHz : 0;
@@ -128,4 +142,43 @@ export function formatTime(seconds: number, precision = 3) {
   const m = Math.floor(Math.max(0, seconds) / 60);
   const s = Math.max(0, seconds) - m * 60;
   return `${m}:${s.toFixed(precision).padStart(precision ? 3 + precision : 2, '0')}`;
+}
+
+// Ordered edits preserve separate stroke geometry: lifting the brush never joins strokes.
+export function combineSelection(
+  base: Mask | null,
+  mask: Mask & { shape: PrimitiveShape },
+  mode: SelectionOperation['mode'],
+): Mask | null {
+  if (!base) return mode === 'subtract' ? null : mask;
+  const operations: SelectionOperation[] =
+    base.shape.kind === 'composite'
+      ? base.shape.operations
+          .filter(
+            (op) =>
+              base.channel === null || op.mask.channel === null || op.mask.channel === base.channel,
+          )
+          .map((op) => ({
+            ...op,
+            mask: { ...op.mask, channel: base.channel ?? op.mask.channel },
+          }))
+      : [{ mode: 'add', mask: base as Mask & { shape: PrimitiveShape } }];
+  while (operations.length && operations[0].mode === 'subtract') operations.shift();
+  if (!operations.length) return mode === 'subtract' ? null : mask;
+  return {
+    shape: { kind: 'composite', operations: [...operations, { mode, mask }] },
+    channel: null,
+    featherTime: 0,
+    featherHz: 0,
+  };
+}
+export function selectionBudget(mask: Mask): boolean {
+  const operations = mask.shape.kind === 'composite' ? mask.shape.operations : [{ mask }];
+  return (
+    operations.length <= 128 &&
+    operations.reduce(
+      (n, { mask }) => n + ('points' in mask.shape ? mask.shape.points.length : 0),
+      0,
+    ) <= 32768
+  );
 }

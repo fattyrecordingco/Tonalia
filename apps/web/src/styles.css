@@ -756,7 +756,8 @@ button.active {
 .spectral-viewport.tool-hand.drawing {
   cursor: grabbing;
 }
-.spectral-viewport.tool-brush {
+.spectral-viewport.tool-brush,
+.spectral-viewport.tool-eraser {
   cursor: crosshair;
 }
 .source-waveform,
@@ -927,6 +928,7 @@ button.active {
   scrollbar-width: thin;
 }
 .selection-kind {
+  flex-wrap: wrap;
   font-size: 10px;
   color: #8da1ac;
   display: flex;
@@ -936,6 +938,9 @@ button.active {
   margin-bottom: 15px;
   gap: 8px;
   min-height: 20px;
+}
+.selection-kind > span {
+  flex: 1 0 100%;
 }
 .field-grid {
   display: grid;

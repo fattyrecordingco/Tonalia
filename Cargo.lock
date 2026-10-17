@@ -3886,7 +3886,7 @@ checksum = "06bdbd8cfc056b8d2e2e85f29b56a3bdbecb527cef81eb39e3e7b98af4652770"
 
 [[package]]
 name = "tonalia-core"
-version = "0.4.2"
+version = "0.5.0"
 dependencies = [
  "nnnoiseless",
  "rustfft",
@@ -3897,7 +3897,7 @@ dependencies = [
 
 [[package]]
 name = "tonalia-desktop"
-version = "0.4.2"
+version = "0.5.0"
 dependencies = [
  "cpal",
  "getrandom 0.3.4",
@@ -3915,7 +3915,7 @@ dependencies = [
 
 [[package]]
 name = "tonalia-wasm"
-version = "0.4.2"
+version = "0.5.0"
 dependencies = [
  "serde-wasm-bindgen",
  "serde_json",

@@ -48,7 +48,45 @@ try {
   await page.getByRole('button', { name: 'Close shortcuts', exact: true }).click();
   await page.getByRole('button', { name: 'History', exact: true }).click();
   await shot('history');
-  console.log('Captured eight real Tonalia screens from the generated practice recording.');
+  await page.getByRole('button', { name: 'Close history', exact: true }).click();
+  await page.getByRole('tab', { name: 'Edit', exact: true }).click();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Delete Turn down the whistle', exact: true }).click();
+  await page.getByRole('button', { name: 'Fit frequency range', exact: true }).click();
+  await page.getByLabel('Frequency scale', { exact: true }).selectOption('linear');
+  await number('View low frequency', '2000');
+  await number('View high frequency', '4500');
+  await number('Start', '6.2');
+  await number('End', '7.8');
+  await number('Low frequency', '2700');
+  await number('High frequency', '3350');
+  await page.getByRole('button', { name: 'Spectral brush', exact: true }).click();
+  await page.getByLabel('Brush diameter', { exact: true }).fill('42');
+  await page.getByLabel('Brush hardness', { exact: true }).fill('0.65');
+  const box = await page.locator('.spectral-viewport').boundingBox();
+  const xy = (time, hz) => ({
+    x: box.x + 52 + (time / 18) * (box.width - 68),
+    y: box.y + 124 + ((4500 - hz) / 2500) * ((box.height - 152) / 2),
+  });
+  const stroke = async (start, end) => {
+    const a = xy(start, 3000),
+      b = xy(end, 3000);
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    await page.mouse.move(b.x, b.y, { steps: 18 });
+    await page.mouse.up();
+  };
+  await stroke(8.6, 9.1);
+  await stroke(10, 10.6);
+  await page.getByRole('button', { name: 'Selection eraser', exact: true }).click();
+  await page.getByLabel('Eraser diameter', { exact: true }).fill('24');
+  await page.getByLabel('Eraser hardness', { exact: true }).fill('1');
+  await stroke(6.95, 7.05);
+  await page.locator('.inspector-content').evaluate((el) => {
+    el.scrollTop = 0;
+  });
+  await shot('combined-selection');
+  console.log('Captured nine real Tonalia screens from the generated practice recording.');
 } finally {
   await browser.close();
 }

@@ -54,13 +54,55 @@ const layers = Array.from({ length: 7 }, (_, layer) => ({
     },
   },
 }));
+for (const layer of layers) {
+  const brush = structuredClone(layer.mask);
+  layer.mask = {
+    channel: null,
+    featherTime: 0,
+    featherHz: 0,
+    shape: {
+      kind: 'composite',
+      operations: [
+        { mode: 'add', mask: brush },
+        {
+          mode: 'subtract',
+          mask: {
+            channel: 0,
+            featherTime: 0,
+            featherHz: 0,
+            shape: {
+              kind: 'brush',
+              points: [
+                { sample: rate * 4, hz: 1900 },
+                { sample: rate * 5, hz: 2300 },
+              ],
+              radiusTime: rate / 4,
+              radiusHz: 800,
+              opacity: 0.8,
+              hardness: 0.5,
+            },
+          },
+        },
+        {
+          mode: 'add',
+          mask: {
+            channel: 1,
+            featherTime: 220.5,
+            featherHz: 21.5,
+            shape: { kind: 'rectangle', start: rate * 10, end: rate * 11, low: 1400, high: 2000 },
+          },
+        },
+      ],
+    },
+  };
+}
 await writeFile(inputPath, input);
 await writeFile(
   projectPath,
   JSON.stringify({
     format: 'tonalia',
-    schema: 2,
-    engine: 'spectral-edit-v2',
+    schema: 3,
+    engine: 'spectral-edit-v3',
     fftSize: 2048,
     source: {
       name: 'brush-reference.wav',
@@ -145,6 +187,9 @@ try {
     version: JSON.parse(await readFile('package.json', 'utf8')).version,
     layers: 7,
     pointsPerStroke: 512,
+    compositeLayers: 7,
+    operationsPerLayer: 3,
+    perChannelEraserAndRectangle: true,
     channels: 2,
     sourceRate: rate,
     concurrentSpectrogramAnalysis: true,

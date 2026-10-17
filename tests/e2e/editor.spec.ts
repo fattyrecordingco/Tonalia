@@ -592,3 +592,101 @@ test('offline neural speech model renders real audio without a network dependenc
   expect(rightError).toBe(0);
   expect(difference).toBeGreaterThan(1);
 });
+
+test('mixed tools accumulate one pending selection, eraser removes audio coverage, and project roundtrips', async ({
+  page,
+}) => {
+  await page.goto('./');
+  await openFixture(page);
+  await number(page, 'Start', '0.2');
+  await number(page, 'End', '1.2');
+  await number(page, 'Low frequency', '800');
+  await number(page, 'High frequency', '1100');
+  await page.getByLabel('Target channels', { exact: true }).selectOption('0');
+  await page.getByLabel('Frequency scale', { exact: true }).selectOption('linear');
+  await number(page, 'View low frequency', '500');
+  await number(page, 'View high frequency', '1500');
+  await page.getByRole('button', { name: 'Spectral brush', exact: true }).click();
+  await page.getByLabel('Brush diameter', { exact: true }).fill('60');
+  await page.getByLabel('Brush opacity', { exact: true }).fill('1');
+  await page.getByLabel('Brush hardness', { exact: true }).fill('1');
+  const box = (await page.locator('.spectral-viewport').boundingBox())!;
+  const xy = (time: number, hz = 937.5) => ({
+    x: box.x + 52 + (time / 3) * (box.width - 68),
+    y: box.y + 124 + ((1500 - hz) / 1000) * ((box.height - 152) / 2),
+  });
+  const stroke = async (start: number, end: number) => {
+    const a = xy(start),
+      b = xy(end);
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    await page.mouse.move(b.x, b.y, { steps: 12 });
+    await page.mouse.up();
+  };
+  await stroke(1.5, 1.8);
+  await stroke(2.3, 2.6);
+  await expect(page.getByText('Combined selection · 3 gestures', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Lasso selection', exact: true }).click();
+  const polygon = [xy(2, 850), xy(2.15, 850), xy(2.15, 1050), xy(2, 1050), xy(2, 850)];
+  await page.mouse.move(polygon[0].x, polygon[0].y);
+  await page.mouse.down();
+  for (const p of polygon.slice(1)) await page.mouse.move(p.x, p.y, { steps: 4 });
+  await page.mouse.up();
+  await page.keyboard.press('e');
+  await page.getByLabel('Eraser hardness', { exact: true }).fill('1');
+  await expect(page.getByRole('button', { name: 'Selection eraser', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await stroke(0.65, 0.85);
+  await expect(page.getByText('Combined selection · 5 gestures', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Delete / })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Undo selection stroke', exact: true }).click();
+  await expect(page.getByText('Combined selection · 4 gestures', { exact: true })).toBeVisible();
+  await stroke(0.65, 0.85);
+  await page.screenshot({ path: 'test-results/combined-selection-eraser.png' });
+  await page.getByRole('button', { name: '-18 dB', exact: true }).click();
+  await page.getByRole('button', { name: 'Create gain layer', exact: true }).click();
+  await expect(page.getByRole('button', { name: /^Delete / })).toHaveCount(1);
+  const output = await exportWav(page, '64', 'removed');
+  const energy = (time: number) => {
+    let sum = 0;
+    for (let i = Math.round((time - 0.02) * 48000); i < (time + 0.02) * 48000; i++)
+      sum += output.readDoubleLE(44 + i * 16) ** 2;
+    return sum;
+  };
+  expect(energy(0.4)).toBeGreaterThan(20);
+  expect(energy(1.65)).toBeGreaterThan(20);
+  expect(energy(2.45)).toBeGreaterThan(20);
+  expect(energy(0.75)).toBeLessThan(1e-5); // Erased hole survives the real WASM render.
+  expect(energy(1.31)).toBeLessThan(1e-12); // Lifted brush strokes have no connecting selection.
+  let untouchedChannel = 0;
+  for (let i = 0; i < 144000; i++)
+    untouchedChannel = Math.max(untouchedChannel, Math.abs(output.readDoubleLE(52 + i * 16)));
+  expect(untouchedChannel).toBe(0);
+  await page.getByRole('button', { name: 'Project', exact: true }).click();
+  const waiting = page.waitForEvent('download');
+  await page.getByRole('button', { name: /Save project/ }).click();
+  const project = await readFile((await (await waiting).path())!);
+  const saved = JSON.parse(project.toString());
+  expect(saved.schema).toBe(3);
+  expect(saved.layers).toHaveLength(1);
+  expect(saved.layers[0].mask.shape.operations.map((op: { mode: string }) => op.mode)).toEqual([
+    'add',
+    'add',
+    'add',
+    'add',
+    'subtract',
+  ]);
+  await page.reload();
+  await openFixture(page);
+  await page.getByLabel('Import project', { exact: true }).setInputFiles({
+    name: 'combined.tonalia.json',
+    mimeType: 'application/json',
+    buffer: project,
+  });
+  await expect(page.getByRole('button', { name: /^Delete / })).toHaveCount(1);
+  const restored = await exportWav(page, '64', 'removed');
+  expect(restored.equals(output)).toBe(true);
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});

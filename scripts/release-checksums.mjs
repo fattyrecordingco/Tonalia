@@ -13,9 +13,23 @@ for (const name of expected)
   if (!files.includes(name)) throw new Error(`Missing installer: ${name}`);
 for (const platform of ['windows', 'macos-arm64', 'macos-x64', 'linux']) {
   const report = JSON.parse(await readFile(`release/verification-${platform}.json`, 'utf8'));
-  if (!report.passed || !report.installedPackage)
+  if (
+    !report.passed ||
+    !report.installedPackage ||
+    report.version !== version ||
+    report.platform !== platform ||
+    !report.frontendMounted ||
+    !report.wasmLoaded ||
+    !report.compositeSelection?.addAndSubtract ||
+    !report.compositeSelection?.brushEraser
+  )
     throw new Error(`Installation check failed: ${platform}`);
-  if (platform === 'linux' && !report.appImage?.passed)
+  if (
+    platform === 'linux' &&
+    (!report.appImage?.passed ||
+      report.appImage.version !== version ||
+      !report.appImage.compositeSelection?.addAndSubtract)
+  )
     throw new Error('AppImage launch check is missing.');
 }
 await copyFile('docs/INSTALL.md', 'release/INSTALL.md');

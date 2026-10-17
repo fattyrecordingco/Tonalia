@@ -120,6 +120,58 @@ export async function verifyInstallation() {
     }
     if (leftError > 2e-8 || rightError !== 0)
       throw new Error(`Installed processing failed: ${leftError}, ${rightError}`);
+    const combined: Layer = {
+      ...layer,
+      mask: {
+        channel: null,
+        featherTime: 0,
+        featherHz: 0,
+        shape: {
+          kind: 'composite',
+          operations: [
+            {
+              mode: 'add',
+              mask: {
+                ...layer.mask,
+                shape: { kind: 'rectangle', start: 12000, end: 60000, low: 0, high: 24000 },
+              },
+            },
+            {
+              mode: 'subtract',
+              mask: {
+                ...layer.mask,
+                shape: {
+                  kind: 'brush',
+                  points: [{ sample: 30000, hz: 1000 }],
+                  radiusTime: 12000,
+                  radiusHz: 24000,
+                  opacity: 1,
+                  hardness: 1,
+                },
+              },
+            },
+          ],
+        },
+      },
+    };
+    const erased = await engine.call<{ samples: Float32Array }>('playback', {
+      ...args,
+      mode: 'result',
+      layers: [combined],
+    });
+    let erasedHoleError = 0;
+    for (let i = 0; i < original.samples.length; i++)
+      erasedHoleError = Math.max(
+        erasedHoleError,
+        Math.abs(erased.samples[i] - original.samples[i]),
+      );
+    if (erasedHoleError > 2e-8)
+      throw new Error(`Composite selection eraser failed: ${erasedHoleError}`);
+    report.compositeSelection = {
+      addAndSubtract: true,
+      brushEraser: true,
+      erasedHoleMaxError: erasedHoleError,
+    };
     const gate: Layer = {
       ...layer,
       id: 'gate-check',

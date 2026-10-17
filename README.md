@@ -4,32 +4,32 @@
 
 [Tonalia website](https://fattyrecordingco.github.io/Tonalia/) · [Illustrated user guide](https://fattyrecordingco.github.io/Tonalia/guide/) · [Browser editor](https://fattyrecordingco.github.io/Tonalia/app/)
 
-The current source is Tonalia 0.4.2, with a shared Rust audio core, a React/TypeScript workspace, desktop packages for Windows/macOS/Linux, and a browser client using the same DSP through WebAssembly. It is an incremental implementation of the [master plan](docs/planning/README.md), not a completed Audition replacement.
+The current source is Tonalia 0.5.0, with a shared Rust audio core, a React/TypeScript workspace, desktop packages for Windows/macOS/Linux, and a browser client using the same DSP through WebAssembly. It is an incremental implementation of the [master plan](docs/planning/README.md), not a completed Audition replacement.
 
-Version 0.4.2 adds automatic sound discovery and extraction, analysis-driven suggestions, joint spectral cleanup, **Separate sounds**, noise-profile reduction, improved brushes, WAV drag and drop, vertical frequency navigation, and Removed-signal export. Dense brushes now evaluate only their supported FFT bins, and playback recovers brief queue gaps without skipping source samples. AI separation is desktop-only and uses optional local packs; the other editing additions also work in the browser.
+Version 0.5.0 adds automatic sound discovery and extraction, analysis-driven suggestions, joint spectral cleanup, **Separate sounds**, noise-profile reduction, improved brushes, WAV drag and drop, vertical frequency navigation, and Removed-signal export. Dense brushes now evaluate only their supported FFT bins, and playback recovers brief queue gaps without skipping source samples. AI separation is desktop-only and uses optional local packs; the other editing additions also work in the browser.
 
 ## Download the desktop app
 
-Installers are published on the [Tonalia 0.4.2 release page](https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.4.2). No developer tools or account are needed. Editing works offline after installation.
+Installers are published on the [Tonalia 0.5.0 release page](https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.5.0). No developer tools or account are needed. Editing works offline after installation.
 
 | Your computer | Direct installer |
 | --- | --- |
-| Windows 11 x64, Intel/AMD | [Windows setup.exe](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/Tonalia_0.4.2_windows_x64_setup.exe) |
-| Mac Apple Silicon, macOS 13+ | [Apple Silicon DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/Tonalia_0.4.2_macos_apple_silicon.dmg) |
-| Mac Intel, macOS 13+ | [Intel DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/Tonalia_0.4.2_macos_intel.dmg) |
-| Ubuntu 22.04+/compatible Debian, x86-64 | [Linux .deb](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/Tonalia_0.4.2_linux_amd64.deb) |
-| Other compatible Linux desktops, x86-64 | [Linux AppImage](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.4.2/Tonalia_0.4.2_linux_x86_64.AppImage) |
+| Windows 11 x64, Intel/AMD | [Windows setup.exe](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.5.0/Tonalia_0.5.0_windows_x64_setup.exe) |
+| Mac Apple Silicon, macOS 13+ | [Apple Silicon DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.5.0/Tonalia_0.5.0_macos_apple_silicon.dmg) |
+| Mac Intel, macOS 13+ | [Intel DMG](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.5.0/Tonalia_0.5.0_macos_intel.dmg) |
+| Ubuntu 22.04+/compatible Debian, x86-64 | [Linux .deb](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.5.0/Tonalia_0.5.0_linux_amd64.deb) |
+| Other compatible Linux desktops, x86-64 | [Linux AppImage](https://github.com/fattyrecordingco/Tonalia/releases/download/v0.5.0/Tonalia_0.5.0_linux_x86_64.AppImage) |
 
 See [installation, chip selection, offline use and checksum instructions](docs/INSTALL.md). These are development builds: Windows is unsigned and Mac builds are ad-hoc signed without Apple notarization. The Windows setup includes the WebView2 offline installer. Linux prerequisites must be available locally for a fully offline installation.
 
-The release workflow checks the shared DSP and browser editor, installs each native package, and runs packaged analysis/restoration diagnostics before publishing. See the [0.4.2 verification record](docs/implementation/RELEASE-0.4.2.md) and [distribution history](docs/implementation/DISTRIBUTION.md) for scope and evidence.
+The release workflow checks the shared DSP and browser editor, installs each native package, and runs packaged analysis/restoration diagnostics before publishing. See the [0.5.0 verification record](docs/implementation/RELEASE-0.5.0.md) and [distribution history](docs/implementation/DISTRIBUTION.md) for scope and evidence.
 
 ## What works
 
 - Open mono/stereo RIFF WAV or RF64: PCM 8/16/24/32-bit and IEEE float 32/64-bit, at 8–192 kHz. Preserve the source's samples, channels, and sample rate.
 - Inspect a calibrated Hann-windowed spectrogram, log/linear frequency axes, source waveform, overview, numerical spectrum, peak/RMS/DC statistics, and stereo correlation.
 - Navigate with overview, pan, pointer-anchored zoom, and fit commands. Viewport analysis streams bounded ranges instead of loading a whole recording into a JavaScript audio buffer.
-- Select time/frequency rectangles, freeform lassos, and weighted brush strokes. Set numeric bounds, channel scope, and supported feathering.
+- Combine multiple brush strokes, rectangles, time ranges and lassos in one pending selection. Use the selection eraser (E) to subtract, then Create gain layer to commit. Set numeric bounds for individual rectangles, channel scope and supported feathering.
 - Apply actual spectral gain or attenuation as ordered, reversible layers. Enable/bypass, reorder, name, remove, undo and redo layers.
 - Listen to the original, processed result, or removed signal. Desktop sources use native CPAL output; the browser uses streamed AudioWorklet output.
 - Export the layer stack at the original rate and channel layout as 32/64-bit float WAV, with RF64 headers for large outputs. Desktop writes a temporary output and finalizes it only when complete; it refuses to overwrite the source path.
@@ -44,7 +44,7 @@ The release workflow checks the shared DSP and browser editor, installs each nat
 - Recover recent local layer checkpoints from History. Use the Shortcuts guide and mouse/trackpad zoom to navigate.
 - Host or join an optional LAN editing session with source identity checks, ordered revisions and explicit conflict rejection. Audio remains local.
 
-All audio processing is local. There is no account requirement or audio upload service. [Current release and verification](docs/implementation/RELEASE-0.4.2.md) · [Earlier DSP algorithms](docs/implementation/RELEASE-0.2.md).
+All audio processing is local. There is no account requirement or audio upload service. [Current release and verification](docs/implementation/RELEASE-0.5.0.md) · [Earlier DSP algorithms](docs/implementation/RELEASE-0.2.md).
 
 ## Run from source
 
@@ -76,7 +76,7 @@ npm run build
 npm run desktop:build
 ```
 
-The Windows installer is written to `target/release/bundle/nsis/Tonalia_0.4.2_x64-setup.exe`. The standalone application is `target/release/tonalia-desktop.exe`; it also accepts a WAV path as its first command-line argument. Platform configurations build Windows NSIS, macOS DMG, and Linux Debian/AppImage packages. The release workflow builds separate Apple Silicon and Intel packages on native Mac runners. See [installation instructions](docs/INSTALL.md) for supported baselines and signing limits.
+The Windows installer is written to `target/release/bundle/nsis/Tonalia_0.5.0_x64-setup.exe`. The standalone application is `target/release/tonalia-desktop.exe`; it also accepts a WAV path as its first command-line argument. Platform configurations build Windows NSIS, macOS DMG, and Linux Debian/AppImage packages. The release workflow builds separate Apple Silicon and Intel packages on native Mac runners. See [installation instructions](docs/INSTALL.md) for supported baselines and signing limits.
 
 ## Make a reversible edit
 
@@ -142,7 +142,7 @@ The renderer and transport operate on snapshots; changing a layer or monitor mod
 
 The whole-source waveform is a peak-bin overview; a short viewport also receives finer source peaks down to individual samples. There is no disk spectral cache yet. Production latency, large-file throughput, long-session reliability, accessibility studies, and Audition comparison gates remain unqualified.
 
-Projects are explicit schema 2 JSON snapshots with up to 64 processing layers and 100 in-memory undo states. Schema 1 gain projects remain readable. History keeps up to 20 local recovery checkpoints; it is not an embedded audio backup or durable crash-recovery journal. Keep the original WAV and save edits before closing. Browser export streams directly to a chosen file where supported; its Blob-download fallback is capped at 256 MiB. Native export is the intended long-file path; >4 GiB physical-file qualification is outstanding even though RF64 header tests pass.
+Projects are explicit schema 3 JSON snapshots with up to 64 processing layers and 100 in-memory undo states. Schema 1 gain and schema 2 editing projects remain readable. New saves require Tonalia 0.5.0 or later. History keeps up to 20 local recovery checkpoints; it is not an embedded audio backup or durable crash-recovery journal. Keep the original WAV and save edits before closing. Browser export streams directly to a chosen file where supported; its Blob-download fallback is capped at 256 MiB. Native export is the intended long-file path; >4 GiB physical-file qualification is outstanding even though RF64 header tests pass.
 
 Only float WAV export is currently exposed. Float preserves headroom; choose 64-bit float when decoded 32-bit integer precision matters. Monitoring uses f32 and a bounded windowed-sinc converter when device and source rates differ. That converter is not qualified for final-delivery rate conversion. No source-rate conversion is performed on export. Unknown/nonfinite audio is rejected; imported float magnitude is limited to +120 dBFS. Source metadata chunks are not retained in new exports.
 

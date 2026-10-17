@@ -63,7 +63,7 @@ test('OS instructions work by deep link and keyboard, and commands can be copied
   await expect(page.getByRole('tabpanel', { name: 'Linux', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Copy command', exact: true }).first().click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
-    'sudo apt install ./Tonalia_0.4.2_linux_amd64.deb',
+    'sudo apt install ./Tonalia_0.5.0_linux_amd64.deb',
   );
   await expect(page.getByRole('status').filter({ hasText: 'Command copied.' })).toHaveCount(1);
 });
