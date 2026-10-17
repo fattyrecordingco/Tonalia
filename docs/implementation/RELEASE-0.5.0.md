@@ -13,3 +13,11 @@ Project schema 3 records these operations and is intentionally rejected by older
 The installed-package diagnostic also checks a mixed rectangle/brush-eraser mask using the packaged WASM. All release platforms must pass installation, startup and DSP diagnostics before assets can be published. Existing source-separation models and algorithms are unchanged; desktop AI setup and limits are documented in the preceding release and tools/audio-ai/README.md.
 
 Public asset sizes, hashes, source commit and release workflow are recorded in build-artifacts.json after publication. Per-platform verification reports accompany the release. Windows packages remain unsigned and Mac packages are not notarized.
+
+## Published packages
+
+All four platform package jobs passed, and all five installers are publicly available. Intel Mac's first packaging attempt failed when hdiutil could not detach a temporary volume (Resource busy); the same tagged source was rerun on a fresh runner and passed packaging and installed-app verification. The successful workflow is recorded in build-artifacts.json. No tag was moved and no package check was bypassed.
+
+Windows, Apple Silicon, Intel Mac and Debian/AppImage reports are committed as verification-0.5.0-*.json and attached to the release. All reports confirm frontend startup, worker/WASM loading and the new composite-selection/brush-eraser diagnostic. Each public installer returned HTTP 200 with the expected length; GitHub's stored asset digest matches its published SHA-256 checksum.
+
+The local packaged Windows engine also passed dense playback with seven 512-point composite layers, channel-specific erasers and rectangles, concurrent spectrogram analysis, and Result/Removed monitoring. The original source remained unchanged. See checks-0.5.0.json for these development checks and their scope.

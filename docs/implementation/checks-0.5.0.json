@@ -1,0 +1,194 @@
+{
+  "version": "0.5.0",
+  "date": "2026-10-17T13:37:53.277266+00:00",
+  "sourceCommit": "5f02aca395ddcc24b5430aafb95a4c75004b51fb",
+  "releaseWorkflow": "https://github.com/fattyrecordingco/Tonalia/actions/runs/39035414061",
+  "releaseAttempt": 2,
+  "localChecks": {
+    "core": 29,
+    "desktop": 5,
+    "browser": 18,
+    "websiteAndPagesPath": 26,
+    "browserWorkletRecovery": true
+  },
+  "publishedInstallers": {
+    "count": 5,
+    "httpStatus": 200,
+    "contentLengthsVerified": true,
+    "githubAssetDigestsMatchPublishedChecksums": true
+  },
+  "nativeCompositePlayback": {
+    "version": "0.5.0",
+    "layers": 7,
+    "pointsPerStroke": 512,
+    "compositeLayers": 7,
+    "operationsPerLayer": 3,
+    "perChannelEraserAndRectangle": true,
+    "channels": 2,
+    "sourceRate": 44100,
+    "concurrentSpectrogramAnalysis": true,
+    "playbackPositions": {
+      "Result": "0:12.082",
+      "Removed": "0:11.732"
+    },
+    "sourceUnchanged": true,
+    "pageErrors": []
+  },
+  "releasePublicationGates": {
+    "version": "0.5.0",
+    "completeReportSetAccepted": true,
+    "stalePlatformReportRejected": true,
+    "missingNewDspVerificationRejected": true,
+    "staleAppImageReportRejected": true
+  },
+  "installedPackageReports": {
+    "windows": {
+      "channels": 2,
+      "compositeSelection": {
+        "addAndSubtract": true,
+        "brushEraser": true,
+        "erasedHoleMaxError": 9.313225746154783e-10
+      },
+      "frontendErrors": [],
+      "frontendMounted": true,
+      "leftGainMaxError": 7.0781590033597305e-09,
+      "origin": "http://tauri.localhost",
+      "passed": true,
+      "renderedFrames": 4096,
+      "restoration": {
+        "bundledNeuralModel": true,
+        "gateMaxError": 8.528397189844216e-10,
+        "neuralDifference": 17.162781986726706,
+        "neuralRenderMs": 117.10000000009312
+      },
+      "sampleRate": 48000,
+      "timestamp": "2026-10-17T13:24:57.448Z",
+      "untouchedRightChannelMaxError": 0,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+      "version": "0.5.0",
+      "wasmLoaded": true,
+      "workerAnalysis": true,
+      "platform": "windows",
+      "installedPackage": true,
+      "networkIsolation": "Offline browser/installed-app check is run separately on the Windows owner machine."
+    },
+    "macos-arm64": {
+      "channels": 2,
+      "compositeSelection": {
+        "addAndSubtract": true,
+        "brushEraser": true,
+        "erasedHoleMaxError": 9.313225746154783e-10
+      },
+      "frontendErrors": [],
+      "frontendMounted": true,
+      "leftGainMaxError": 7.0781590033597305e-09,
+      "origin": "tauri://localhost",
+      "passed": true,
+      "renderedFrames": 4096,
+      "restoration": {
+        "bundledNeuralModel": true,
+        "gateMaxError": 8.528397189844216e-10,
+        "neuralDifference": 17.162781986726706,
+        "neuralRenderMs": 192.00000000000043
+      },
+      "sampleRate": 48000,
+      "timestamp": "2026-10-17T13:19:17.064Z",
+      "untouchedRightChannelMaxError": 0,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)",
+      "version": "0.5.0",
+      "wasmLoaded": true,
+      "workerAnalysis": true,
+      "platform": "macos-arm64",
+      "installedPackage": true,
+      "networkIsolation": "sandbox-exec outbound IP denial"
+    },
+    "macos-x64": {
+      "channels": 2,
+      "compositeSelection": {
+        "addAndSubtract": true,
+        "brushEraser": true,
+        "erasedHoleMaxError": 9.313225746154783e-10
+      },
+      "frontendErrors": [],
+      "frontendMounted": true,
+      "leftGainMaxError": 7.0781590033597305e-09,
+      "origin": "tauri://localhost",
+      "passed": true,
+      "renderedFrames": 4096,
+      "restoration": {
+        "bundledNeuralModel": true,
+        "gateMaxError": 8.528397189844216e-10,
+        "neuralDifference": 17.162781986726706,
+        "neuralRenderMs": 365.99999999999955
+      },
+      "sampleRate": 48000,
+      "timestamp": "2026-10-17T13:34:46.843Z",
+      "untouchedRightChannelMaxError": 0,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)",
+      "version": "0.5.0",
+      "wasmLoaded": true,
+      "workerAnalysis": true,
+      "platform": "macos-x64",
+      "installedPackage": true,
+      "networkIsolation": "sandbox-exec outbound IP denial"
+    },
+    "linux": {
+      "channels": 2,
+      "compositeSelection": {
+        "addAndSubtract": true,
+        "brushEraser": true,
+        "erasedHoleMaxError": 9.313225746154783e-10
+      },
+      "frontendErrors": [],
+      "frontendMounted": true,
+      "leftGainMaxError": 7.0781590033597305e-09,
+      "origin": "tauri://localhost",
+      "passed": true,
+      "renderedFrames": 4096,
+      "restoration": {
+        "bundledNeuralModel": true,
+        "gateMaxError": 8.528397189844216e-10,
+        "neuralDifference": 17.162781986726706,
+        "neuralRenderMs": 170
+      },
+      "sampleRate": 48000,
+      "timestamp": "2026-10-17T13:19:45.609Z",
+      "untouchedRightChannelMaxError": 0,
+      "userAgent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/60.5 Safari/605.1.15",
+      "version": "0.5.0",
+      "wasmLoaded": true,
+      "workerAnalysis": true,
+      "platform": "linux",
+      "installedPackage": true,
+      "networkIsolation": "unshare network namespace",
+      "appImage": {
+        "channels": 2,
+        "compositeSelection": {
+          "addAndSubtract": true,
+          "brushEraser": true,
+          "erasedHoleMaxError": 9.313225746154783e-10
+        },
+        "frontendErrors": [],
+        "frontendMounted": true,
+        "leftGainMaxError": 7.0781590033597305e-09,
+        "origin": "tauri://localhost",
+        "passed": true,
+        "renderedFrames": 4096,
+        "restoration": {
+          "bundledNeuralModel": true,
+          "gateMaxError": 8.528397189844216e-10,
+          "neuralDifference": 17.162781986726706,
+          "neuralRenderMs": 152
+        },
+        "sampleRate": 48000,
+        "timestamp": "2026-10-17T13:19:48.242Z",
+        "untouchedRightChannelMaxError": 0,
+        "userAgent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/60.5 Safari/605.1.15",
+        "version": "0.5.0",
+        "wasmLoaded": true,
+        "workerAnalysis": true
+      }
+    }
+  },
+  "qualification": "Development checks using generated/reference audio. No physical loopback, hardware latency, long-session or Audition-parity qualification."
+}

@@ -102,7 +102,7 @@ To export the selected spectral material, attenuate it with a layer, then choose
 | Action | Shortcut |
 | --- | --- |
 | Play/pause | Space |
-| Time / rectangle / lasso / brush / pan | T / M / L / B / H |
+| Time / rectangle / lasso / brush / eraser / pan | T / M / L / B / E / H |
 | Brush size | `[` / `]` |
 | Fit source / selection | Shift+1 / Shift+2 |
 | Zoom at pointer | Ctrl/Cmd + wheel |

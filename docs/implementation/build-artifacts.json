@@ -1,8 +1,8 @@
 {
   "version": "0.5.0",
   "tag": "v0.5.0",
-  "sourceCommit": null,
-  "workflow": null,
+  "sourceCommit": "5f02aca395ddcc24b5430aafb95a4c75004b51fb",
+  "workflow": "https://github.com/fattyrecordingco/Tonalia/actions/runs/39035414061",
   "release": "https://github.com/fattyrecordingco/Tonalia/releases/tag/v0.5.0",
   "prerelease": true,
   "windowsSigned": false,
@@ -10,34 +10,33 @@
   "artifacts": [
     {
       "name": "Tonalia_0.5.0_linux_amd64.deb",
-      "bytes": null,
-      "sha256": null,
+      "bytes": 4704344,
+      "sha256": "4c5c628d384da0cf3e7e036c4434e783d0472cb9500d5b45696f4c5377500e89",
       "url": "https://github.com/fattyrecordingco/Tonalia/releases/download/v0.5.0/Tonalia_0.5.0_linux_amd64.deb"
     },
     {
       "name": "Tonalia_0.5.0_linux_x86_64.AppImage",
-      "bytes": null,
-      "sha256": null,
+      "bytes": 94112248,
+      "sha256": "e4e055da271213a7cc24252666826ff19e69bd8602d2868227adafbfe75215de",
       "url": "https://github.com/fattyrecordingco/Tonalia/releases/download/v0.5.0/Tonalia_0.5.0_linux_x86_64.AppImage"
     },
     {
       "name": "Tonalia_0.5.0_macos_apple_silicon.dmg",
-      "bytes": null,
-      "sha256": null,
+      "bytes": 4321100,
+      "sha256": "10ec4077a2b31e19d26f0892535073ce1f28e08526ea452e4182cd7858f042b2",
       "url": "https://github.com/fattyrecordingco/Tonalia/releases/download/v0.5.0/Tonalia_0.5.0_macos_apple_silicon.dmg"
     },
     {
       "name": "Tonalia_0.5.0_macos_intel.dmg",
-      "bytes": null,
-      "sha256": null,
+      "bytes": 4881715,
+      "sha256": "e8188bf5d9a2216dd7cf9c957c54f3cba244f694c9edf7a4d0e9bf763db17ad2",
       "url": "https://github.com/fattyrecordingco/Tonalia/releases/download/v0.5.0/Tonalia_0.5.0_macos_intel.dmg"
     },
     {
       "name": "Tonalia_0.5.0_windows_x64_setup.exe",
-      "bytes": null,
-      "sha256": null,
+      "bytes": 220424544,
+      "sha256": "60d13adee9977a9b6462c2adf488dd7e58c17db525bcccdeb4a020756e7e9eda",
       "url": "https://github.com/fattyrecordingco/Tonalia/releases/download/v0.5.0/Tonalia_0.5.0_windows_x64_setup.exe"
     }
-  ],
-  "publication": "pending"
+  ]
 }
