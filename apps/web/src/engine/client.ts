@@ -12,6 +12,8 @@ import type {
   View,
 } from '../types';
 import { isNative } from '../types';
+import type { NoteRequest, NoteConversion } from './notes';
+import { encodeMidi } from './midi';
 
 interface WritableAudio {
   write: (bytes: Uint8Array) => Promise<void>;
@@ -59,6 +61,7 @@ export class AudioEngine {
   onScan: (x: ScanEvent) => void = () => {};
   onFingerprint: (x: string) => void = () => {};
   onAnalysisProgress: (x: number) => void = () => {};
+  onNoteProgress: (x: number) => void = () => {};
   onExportProgress: (x: number) => void = () => {};
   onPosition: (position: number, playing: boolean, peak?: number) => void = () => {};
   onError: (e: string) => void = () => {};
@@ -141,6 +144,10 @@ export class AudioEngine {
       this.onAnalysisProgress(msg.progress as number);
       return;
     }
+    if (msg.event === 'noteProgress') {
+      this.onNoteProgress(msg.progress as number);
+      return;
+    }
     if (msg.event === 'exportProgress') {
       this.onExportProgress(msg.progress as number);
       return;
@@ -191,6 +198,48 @@ export class AudioEngine {
   }
   analyze(view: View, fftSize: number, layers: Layer[], columns = 900) {
     return this.call<Analysis | null>('analyze', { view, fftSize, layers, columns });
+  }
+  convertNotes(request: NoteRequest, layers: Layer[]) {
+    return this.call<NoteConversion | null>('convertNotes', { ...request, layers });
+  }
+  cancelNotes() {
+    this.worker.postMessage({ method: 'cancelNotes' });
+  }
+  async exportMidi(name: string, conversion: NoteConversion) {
+    const bytes = encodeMidi(conversion);
+    const suggestedName = name.replace(/\.[^.]+$/, '') + '-notes.mid';
+    if (isNative()) {
+      const path = await save({
+        defaultPath: suggestedName,
+        filters: [{ name: 'MIDI notes', extensions: ['mid'] }],
+      });
+      if (!path) return false;
+      await invoke('save_midi', { path, bytes: Array.from(bytes) });
+    } else {
+      const picker = (window as PickerWindow).showSaveFilePicker;
+      if (picker) {
+        let writer: WritableAudio | null = null;
+        try {
+          const handle = await picker({
+            suggestedName,
+            types: [{ description: 'MIDI notes', accept: { 'audio/midi': ['.mid'] } }],
+          });
+          if (
+            handle.name.normalize('NFC').toLocaleLowerCase() ===
+            name.normalize('NFC').toLocaleLowerCase()
+          )
+            throw new Error('Choose a different filename to preserve the source audio.');
+          writer = await handle.createWritable();
+          await writer.write(bytes);
+          await writer.close();
+        } catch (e) {
+          await writer?.abort().catch(() => {});
+          if (e instanceof DOMException && e.name === 'AbortError') return false;
+          throw e;
+        }
+      } else download(new Blob([bytes as BlobPart], { type: 'audio/midi' }), suggestedName);
+    }
+    return true;
   }
   async play(
     position: number,

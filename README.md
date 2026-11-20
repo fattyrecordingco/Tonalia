@@ -4,7 +4,7 @@
 
 [Tonalia website](https://fattyrecordingco.github.io/Tonalia/) · [Illustrated user guide](https://fattyrecordingco.github.io/Tonalia/guide/) · [Browser editor](https://fattyrecordingco.github.io/Tonalia/app/)
 
-The current source is Tonalia 0.5.0, with a shared Rust audio core, a React/TypeScript workspace, desktop packages for Windows/macOS/Linux, and a browser client using the same DSP through WebAssembly. It is an incremental implementation of the [master plan](docs/planning/README.md), not a completed Audition replacement.
+The current source is Tonalia 0.5.1, with a shared Rust audio core, a React/TypeScript workspace, desktop packages for Windows/macOS/Linux, and a browser client using the same DSP through WebAssembly. This working build adds spectrogram note identification, melody-to-MIDI export, and a refreshed studio interface. The published downloads below are version 0.5.0. It is an incremental implementation of the [master plan](docs/planning/README.md), not a completed Audition replacement.
 
 Version 0.5.0 adds automatic sound discovery and extraction, analysis-driven suggestions, joint spectral cleanup, **Separate sounds**, noise-profile reduction, improved brushes, WAV drag and drop, vertical frequency navigation, and Removed-signal export. Dense brushes now evaluate only their supported FFT bins, and playback recovers brief queue gaps without skipping source samples. AI separation is desktop-only and uses optional local packs; the other editing additions also work in the browser.
 
@@ -28,6 +28,7 @@ The release workflow checks the shared DSP and browser editor, installs each nat
 
 - Open mono/stereo RIFF WAV or RF64: PCM 8/16/24/32-bit and IEEE float 32/64-bit, at 8–192 kHz. Preserve the source's samples, channels, and sample rate.
 - Inspect a calibrated Hann-windowed spectrogram, log/linear frequency axes, source waveform, overview, numerical spectrum, peak/RMS/DC statistics, and stereo correlation.
+- Identify pitches directly on the spectrogram with note names, MIDI numbers and cents. Convert a recording or time range to a dominant melody per channel, inspect note durations/confidence, and export a standard MIDI file.
 - Navigate with overview, pan, pointer-anchored zoom, and fit commands. Viewport analysis streams bounded ranges instead of loading a whole recording into a JavaScript audio buffer.
 - Combine multiple brush strokes, rectangles, time ranges and lassos in one pending selection. Use the selection eraser (E) to subtract, then Create gain layer to commit. Set numeric bounds for individual rectangles, channel scope and supported feathering.
 - Apply actual spectral gain or attenuation as ordered, reversible layers. Enable/bypass, reorder, name, remove, undo and redo layers.
@@ -95,6 +96,10 @@ For noise reduction, select a noise-only passage (at least 2048 samples, at most
 The **Time** and **Hz** buttons above the spectrum zoom each axis independently. Hz arrows pan vertically; **Fit frequency range** restores the full band. **View low frequency** and **View high frequency** in Display accept exact Hz limits. **Fit source** resets both axes, and **Zoom to selection** fits both time and frequency.
 After zooming vertically, drag the frequency slider at the right edge or scroll over the Hz ruler to move up and down. Alt/Option + wheel zooms frequency; Alt/Option + Shift + wheel pans it. Display analysis supports up to 16,384 FFT samples and reports Hz per bin; the processing FFT remains fixed at 2048 samples.
 
+**Notes & MIDI**, immediately above the spectrogram, adds an optional note/MIDI ruler alongside Hz. Hover over a frequency to see its nearest note, MIDI number and cents offset (scientific pitch notation: C4 = MIDI 60; A4 = 440 Hz). Choose the whole recording, visible time range or selected time range, then **Convert to notes**. Open **Conversion settings** to choose Original or Result, either stereo channel or both separately, and an RMS gate. Use the range button beside the detection count to fit the detected notes; their overlays show pitch and duration. Hover at a note's time or play the recording to inspect its timing, confidence and estimated velocity. **Export MIDI** saves a `.mid` in the browser or desktop app.
+
+Conversion estimates one dominant pitch per channel using YIN, separately from display FFT/zoom, in bounded audio chunks at 20 ms intervals. It supports C1–C7, excludes notes shorter than 60 ms, and works best with isolated melodies. Chords, percussion, noisy recordings and dense mixes can produce missing or incorrect notes; the confidence score measures periodicity, not transcription accuracy. Both stereo channels become separate MIDI tracks/channels, so choose Left or Right to avoid duplicate notes from a stereo recording of one instrument. Export preserves measured timings and estimated velocities without beat quantization, using a fixed 120 BPM/960 PPQ time base rather than estimating tempo. The converted range begins at MIDI time zero, including any leading silence within that range. MIDI contains note events without audio, pitch bends or instrument assignments. Conversions are temporary and cleared when the source, layer stack or conversion settings change; export them before leaving the session.
+
 To export the selected spectral material, attenuate it with a layer, then choose **Removed** in the monitor and **Export audio**. The export dialog defaults to the monitored signal; its **Signal** menu can also select **Result** or **Original**. Removed includes the differences from all enabled layers, with their gains, masks and feathering. Bypass other layers to export the effect of one layer. With finite attenuation this is the attenuated difference, rather than a binary cutout of the whole drawn region. Export Result separately to retain the cleaned recording. At 64-bit precision, Result plus Removed reconstructs the decoded original to floating-point precision.
 
 ## Shortcuts
@@ -130,9 +135,12 @@ Browser tests use installed Chrome locally; CI installs Playwright Chromium. The
 ```sh
 npm run desktop:build
 node tests/native/smoke.mjs
+node tests/native/midi.mjs
 ```
 
 The native smoke test opens a temporary generated recording, plays a short quiet preview through the default device, checks a native export/project, and closes its own app instance. By default it uses command-line open and direct export/project IPC. Set `TONALIA_TEST_PICKERS=1` on Windows to exercise the actual native Open WAV, Export WAV and Save Project dialogs; this mode briefly focuses the test application's dialogs. Set `TONALIA_TEST_EXECUTABLE` to the installed executable and `TONALIA_TEST_OFFLINE=1` to block outbound WebView internet while preserving local IPC. It uses an isolated temporary WebView profile/debugging port for the test process. See [distribution verification](docs/implementation/DISTRIBUTION.md) and [implementation status](docs/implementation/STATUS.md).
+
+The separate native MIDI test converts a generated melody, saves it through the actual MIDI dialog, checks its note events, and verifies source-overwrite rejection. It briefly focuses its own test app and does not play audio.
 
 ## Current limits
 
@@ -144,7 +152,7 @@ The whole-source waveform is a peak-bin overview; a short viewport also receives
 
 Projects are explicit schema 3 JSON snapshots with up to 64 processing layers and 100 in-memory undo states. Schema 1 gain and schema 2 editing projects remain readable. New saves require Tonalia 0.5.0 or later. History keeps up to 20 local recovery checkpoints; it is not an embedded audio backup or durable crash-recovery journal. Keep the original WAV and save edits before closing. Browser export streams directly to a chosen file where supported; its Blob-download fallback is capped at 256 MiB. Native export is the intended long-file path; >4 GiB physical-file qualification is outstanding even though RF64 header tests pass.
 
-Only float WAV export is currently exposed. Float preserves headroom; choose 64-bit float when decoded 32-bit integer precision matters. Monitoring uses f32 and a bounded windowed-sinc converter when device and source rates differ. That converter is not qualified for final-delivery rate conversion. No source-rate conversion is performed on export. Unknown/nonfinite audio is rejected; imported float magnitude is limited to +120 dBFS. Source metadata chunks are not retained in new exports.
+Audio export supports float WAV; detected notes can also be exported as MIDI. Float preserves headroom; choose 64-bit float when decoded 32-bit integer precision matters. Monitoring uses f32 and a bounded windowed-sinc converter when device and source rates differ. That converter is not qualified for final-delivery rate conversion. No source-rate conversion is performed on WAV export. Unknown/nonfinite audio is rejected; imported float magnitude is limited to +120 dBFS. Source metadata chunks are not retained in new exports.
 
 ## Source layout
 

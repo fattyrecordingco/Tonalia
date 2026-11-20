@@ -260,7 +260,7 @@ test('opens an honest empty workspace and real calibration analysis', async ({ p
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('./');
-  await expect(page.getByRole('heading', { name: /Every frequency/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Open a recording/ })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Export audio', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Explore a calibration session' }).click();
   await expect(page.getByText('SHA-256 verified', { exact: true })).toBeVisible();
@@ -611,8 +611,9 @@ test('mixed tools accumulate one pending selection, eraser removes audio coverag
   await page.getByLabel('Brush opacity', { exact: true }).fill('1');
   await page.getByLabel('Brush hardness', { exact: true }).fill('1');
   const box = (await page.locator('.spectral-viewport').boundingBox())!;
+  const plot = (await page.locator('.source-waveform').boundingBox())!;
   const xy = (time: number, hz = 937.5) => ({
-    x: box.x + 52 + (time / 3) * (box.width - 68),
+    x: plot.x + (time / 3) * plot.width,
     y: box.y + 124 + ((1500 - hz) / 1000) * ((box.height - 152) / 2),
   });
   const stroke = async (start: number, end: number) => {

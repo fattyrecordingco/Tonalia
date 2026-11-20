@@ -21,12 +21,18 @@ import type { WavInfo, View, Mask, Layer, Tool, Point, Analysis, PrimitiveShape 
 import { formatHz, formatTime, maskBounds, combineSelection, selectionBudget } from '../types';
 import { clampView, zoomTime, zoomFrequency, panFrequency } from '../engine/navigation';
 import { GpuSpectrogram } from '../engine/gpu-spectrogram';
+import type { AudioEngine } from '../engine/client';
+import { identifyNote, noteHz, noteName, type NoteConversion } from '../engine/notes';
+import { NoteControls } from './NoteControls';
 export interface Overview {
   peaks: Float32Array;
   binFrames: number;
   scannedFrames: number;
 }
 interface Props {
+  engine: AudioEngine;
+  name: string;
+  loading: boolean;
   info: WavInfo | null;
   view: View;
   analysis: Analysis | null;
@@ -53,10 +59,9 @@ interface Props {
   onFit: () => void;
   onZoomSelection: () => void;
 }
-const LEFT = 52,
+const LEFT = 110,
   RIGHT = 16,
   TOP = 26,
-  WAVE = 74,
   GAP = 24;
 const palette = Array.from({ length: 256 }, (_, i) => {
   const stops = [
@@ -80,6 +85,8 @@ function niceStep(value: number) {
   return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * base;
 }
 export function SpectralCanvas(p: Props) {
+  const [conversion, setConversion] = useState<NoteConversion | null>(null);
+  const [showNotes, setShowNotes] = useState(true);
   const root = useRef<HTMLDivElement>(null),
     canvas = useRef<HTMLCanvasElement>(null),
     wave = useRef<HTMLCanvasElement>(null),
@@ -102,8 +109,9 @@ export function SpectralCanvas(p: Props) {
     channel: number;
     moved: boolean;
   } | null>(null);
+  const waveHeight = size.h < 320 ? 42 : 74;
   const width = Math.max(1, size.w - LEFT - RIGHT),
-    spectralTop = TOP + WAVE + GAP;
+    spectralTop = TOP + waveHeight + (size.h < 320 ? 12 : GAP);
   const laneHeight = Math.max(1, (size.h - spectralTop - 28) / (p.info?.channels || 1));
   const tx = useCallback(
     (s: number) => LEFT + ((s - p.view.start) / (p.view.end - p.view.start)) * width,
@@ -209,11 +217,11 @@ export function SpectralCanvas(p: Props) {
     if (!c) return;
     const dpr = window.devicePixelRatio || 1;
     c.width = width * dpr;
-    c.height = WAVE * dpr;
+    c.height = waveHeight * dpr;
     const ctx = c.getContext('2d');
     if (!ctx) return;
     ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, width, WAVE);
+    ctx.clearRect(0, 0, width, waveHeight);
     if (!p.info || !p.overview) return;
     const detail = p.analysis?.waveform;
     const useDetail =
@@ -223,7 +231,7 @@ export function SpectralCanvas(p: Props) {
     const o = useDetail ? detail! : p.overview;
     const origin = useDetail ? detail!.start : 0;
     const channels = p.info.channels,
-      lh = WAVE / channels;
+      lh = waveHeight / channels;
     for (let ch = 0; ch < channels; ch++) {
       ctx.strokeStyle = ch === 0 ? '#a5bdc5' : '#7f9cab';
       ctx.lineWidth = 1;
@@ -255,7 +263,7 @@ export function SpectralCanvas(p: Props) {
       ctx.lineTo(width, ch * lh + lh / 2);
       ctx.stroke();
     }
-  }, [p.overview, p.analysis, p.view, p.info, width]);
+  }, [p.overview, p.analysis, p.view, p.info, width, waveHeight]);
   useEffect(() => {
     const c = overviewCanvas.current;
     if (!c) return;
@@ -579,6 +587,26 @@ export function SpectralCanvas(p: Props) {
     for (let f = Math.ceil(p.view.low / step) * step; f <= p.view.high; f += step) ticks.push(f);
     return ticks;
   }, [p.view.low, p.view.high, p.view.log]);
+  const noteTicks = useMemo(() => {
+    const ticks: number[] = [];
+    let previous = -Infinity;
+    // Prefer C octave markers when zoomed out, then progressively reveal notes.
+    const candidates = Array.from({ length: 128 }, (_, midi) => midi).filter(
+      (m) => noteHz(m) >= p.view.low && noteHz(m) <= p.view.high,
+    );
+    const spacing = Math.abs(fy(440) - fy(noteHz(70)));
+    for (const m of candidates) {
+      if (spacing < 18 && m % (spacing >= 6 ? 3 : 12) !== 0) continue;
+      const position = fy(noteHz(m));
+      if (position < spectralTop + 9 || position > spectralTop + laneHeight - 9) continue;
+      const y = -position;
+      if (y - previous >= 16) {
+        ticks.push(m);
+        previous = y;
+      }
+    }
+    return ticks;
+  }, [p.view, laneHeight]);
   const maskPath = (
     m: Mask,
     ch: number,
@@ -771,6 +799,53 @@ export function SpectralCanvas(p: Props) {
       ),
     [p.selection, p.view, size, p.info],
   );
+  const noteOverlays = useMemo(
+    () =>
+      Array.from({ length: p.info?.channels || 0 }, (_, ch) =>
+        conversion?.notes
+          .filter(
+            (n) =>
+              n.channel === ch &&
+              n.end >= p.view.start &&
+              n.start <= p.view.end &&
+              noteHz(n.midi) >= p.view.low &&
+              noteHz(n.midi) <= p.view.high,
+          )
+          .map((n, index) => {
+            const x = Math.max(LEFT, tx(n.start)),
+              end = Math.min(size.w - RIGHT, tx(n.end));
+            const y = fy(noteHz(n.midi), ch);
+            const height = Math.max(
+              4,
+              Math.min(17, Math.abs(fy(noteHz(n.midi - 0.4), ch) - fy(noteHz(n.midi + 0.4), ch))),
+            );
+            return (
+              <g
+                key={index}
+                className="detected-note"
+                data-testid="detected-note"
+                data-midi={n.midi}
+              >
+                <rect
+                  x={x}
+                  y={y - height / 2}
+                  width={Math.max(1, end - x)}
+                  height={height}
+                  rx={2}
+                  fillOpacity={0.2 + n.confidence * 0.25}
+                />
+                <line x1={x} x2={end} y1={y} y2={y} />
+                {end - x > 55 && (
+                  <text x={x + 4} y={y - height / 2 - 3}>
+                    {noteName(n.midi)} · {n.midi}
+                  </text>
+                )}
+              </g>
+            );
+          }),
+      ),
+    [conversion, p.info, p.view, size],
+  );
 
   return (
     <div className="canvas-column">
@@ -877,6 +952,22 @@ export function SpectralCanvas(p: Props) {
           </button>
         </div>
       </div>
+      <NoteControls
+        engine={p.engine}
+        info={p.info}
+        name={p.name}
+        layers={p.layers}
+        view={p.view}
+        selection={p.selection}
+        loading={p.loading}
+        conversion={conversion}
+        onConversion={setConversion}
+        show={showNotes}
+        onShow={setShowNotes}
+        cursor={hover}
+        position={p.position}
+        onView={p.onView}
+      />
       <div
         className={`spectral-viewport tool-${p.tool} ${drawing ? 'drawing' : ''}`}
         ref={root}
@@ -931,7 +1022,7 @@ export function SpectralCanvas(p: Props) {
         <canvas
           ref={wave}
           className="source-waveform"
-          style={{ left: LEFT, top: TOP, width, height: WAVE }}
+          style={{ left: LEFT, top: TOP, width, height: waveHeight }}
         />
         <canvas
           ref={gpuCanvas}
@@ -994,7 +1085,12 @@ export function SpectralCanvas(p: Props) {
               <g key={ch}>
                 <text
                   x={14}
-                  y={TOP + ch * (WAVE / p.info!.channels) + WAVE / p.info!.channels / 2 + 4}
+                  y={
+                    TOP +
+                    ch * (waveHeight / p.info!.channels) +
+                    waveHeight / p.info!.channels / 2 +
+                    4
+                  }
                   className="channel-label"
                 >
                   {p.info!.channels === 1 ? 'M' : ch === 0 ? 'L' : 'R'}
@@ -1008,7 +1104,12 @@ export function SpectralCanvas(p: Props) {
                 </text>
                 {freqTicks.map((f) => (
                   <g key={f}>
-                    <text x={LEFT - 9} y={fy(f, ch) + 4} textAnchor="end" className="ruler-text">
+                    <text
+                      x={showNotes ? LEFT - 67 : LEFT - 9}
+                      y={fy(f, ch) + 4}
+                      textAnchor="end"
+                      className="ruler-text"
+                    >
                       {formatHz(f)}
                     </text>
                     <line
@@ -1020,7 +1121,38 @@ export function SpectralCanvas(p: Props) {
                     />
                   </g>
                 ))}
+                {showNotes &&
+                  noteTicks.map((midi) => (
+                    <g key={`note-${midi}`} className="note-ruler" data-testid="note-ruler-tick">
+                      <rect
+                        x={LEFT - 60}
+                        y={fy(noteHz(midi), ch) - 8}
+                        width={55}
+                        height={16}
+                        rx={2}
+                        fill={[1, 3, 6, 8, 10].includes(midi % 12) ? '#10151c' : '#293a40'}
+                      />
+                      <text x={LEFT - 55} y={fy(noteHz(midi), ch) + 3}>
+                        {noteName(midi)}
+                      </text>
+                      <text
+                        x={LEFT - 9}
+                        y={fy(noteHz(midi), ch) + 3}
+                        textAnchor="end"
+                        className="midi-ruler-number"
+                      >
+                        {midi}
+                      </text>
+                      <line
+                        x1={LEFT}
+                        x2={size.w - RIGHT}
+                        y1={fy(noteHz(midi), ch)}
+                        y2={fy(noteHz(midi), ch)}
+                      />
+                    </g>
+                  ))}
                 <g clipPath={`url(#lane-${ch})`}>
+                  {showNotes && noteOverlays[ch]}
                   {layerOverlays[ch]}
                   {selectionOverlays[ch]}
                   {(p.tool === 'brush' || p.tool === 'eraser') &&
@@ -1067,6 +1199,20 @@ export function SpectralCanvas(p: Props) {
                       );
                     })()}
                 </g>
+                {showNotes && hover?.ch === ch && identifyNote(hover.p.hz) && (
+                  <g className="pitch-crosshair">
+                    <line
+                      x1={LEFT}
+                      x2={size.w - RIGHT}
+                      y1={fy(hover.p.hz, ch)}
+                      y2={fy(hover.p.hz, ch)}
+                    />
+                    <rect x={LEFT - 61} y={fy(hover.p.hz, ch) - 9} width={58} height={18} rx={3} />
+                    <text x={LEFT - 32} y={fy(hover.p.hz, ch) + 3} textAnchor="middle">
+                      {identifyNote(hover.p.hz)!.name} · {identifyNote(hover.p.hz)!.midi}
+                    </text>
+                  </g>
+                )}
                 <line
                   x1={LEFT}
                   x2={size.w - RIGHT}
@@ -1111,26 +1257,67 @@ export function SpectralCanvas(p: Props) {
         )}
         {!p.info && (
           <div className="canvas-empty">
-            <div className="empty-wave">
-              <AudioLines size={52} strokeWidth={1} />
-            </div>
-            <h1>
-              Every frequency.
-              <br />
-              Within reach.
-            </h1>
+            <svg className="empty-spectrum" viewBox="0 0 420 126" aria-hidden="true">
+              {[24, 48, 72, 96].map((y) => (
+                <line key={y} x1="0" x2="420" y1={y} y2={y} stroke="currentColor" opacity=".12" />
+              ))}
+              {Array.from({ length: 70 }, (_, i) => {
+                const height = 5 + 45 * Math.sin(i * 0.28) ** 2 * Math.sin((i / 70) * Math.PI) ** 2;
+                return (
+                  <rect
+                    key={i}
+                    x={i * 6}
+                    y={63 - height / 2}
+                    width="2"
+                    height={height}
+                    rx="1"
+                    fill="currentColor"
+                    opacity={0.2 + Math.sin(i * 0.3) ** 2 * 0.35}
+                  />
+                );
+              })}
+              {[
+                [50, 90, 70],
+                [124, 66, 76],
+                [205, 42, 74],
+                [284, 66, 80],
+              ].map(([x, y, w], i) => (
+                <g key={x}>
+                  <rect
+                    x={x}
+                    y={y}
+                    width={w}
+                    height="10"
+                    rx="3"
+                    fill={i === 2 ? '#e4b887' : 'currentColor'}
+                    opacity=".25"
+                  />
+                  <line
+                    x1={x}
+                    x2={x + w}
+                    y1={y + 5}
+                    y2={y + 5}
+                    stroke={i === 2 ? '#e4b887' : 'currentColor'}
+                    opacity=".8"
+                  />
+                </g>
+              ))}
+            </svg>
+            <h1>Open a recording.</h1>
             <p>
-              Drop a WAV recording here to explore its spectrum
+              Explore its spectrum, shape the sound,
               <br />
-              and make your first reversible edit.
+              and turn a melody into MIDI.
             </p>
             <button className="primary-button" onClick={p.onOpen}>
-              <FolderOpen size={16} /> Open audio
+              <FolderOpen size={17} /> Open audio
             </button>
             <button className="text-button" onClick={p.onDemo}>
-              Explore a calibration session
+              <AudioLines size={14} /> Explore a calibration session
             </button>
-            <span className="empty-footnote">Local processing. Your source stays untouched.</span>
+            <span className="empty-footnote">
+              WAV audio · Processed locally · Original preserved
+            </span>
           </div>
         )}
         {p.info && !p.analysis && p.pending && (

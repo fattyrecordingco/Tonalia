@@ -9,6 +9,7 @@ import {
   AudioLines,
   Brush,
   Check,
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
   Copy,
@@ -20,6 +21,8 @@ import {
   FolderOpen,
   Hand,
   Headphones,
+  History,
+  Keyboard,
   Layers,
   Lasso,
   LoaderCircle,
@@ -31,11 +34,14 @@ import {
   Redo2,
   Repeat2,
   Save,
+  Share2,
+  ShieldCheck,
   Settings2,
   SkipBack,
   SlidersHorizontal,
   Square,
   SquareDashed,
+  Sparkles,
   Trash2,
   Undo2,
   Volume2,
@@ -49,6 +55,7 @@ import { SpectralCanvas, type Overview } from './components/SpectralCanvas';
 import { NumberField } from './components/NumberField';
 import { SpectrumPlot } from './components/SpectrumPlot';
 import { SeparationPanel } from './components/SeparationPanel';
+import { identifyNote } from './engine/notes';
 import type {
   WavInfo,
   View,
@@ -1027,12 +1034,16 @@ export default function App() {
             />
           </svg>
           <strong>tonalia</strong>
+          <span className="build-version" title={`Tonalia ${version}`}>
+            {version}
+          </span>
           <span className="brand-divider" />
           <span className="studio-name">Fatty Recording Co</span>
         </div>
         <div className="project-title">
           <span>{info ? name.replace(/\.(wav|wave)$/i, '') : 'Untitled session'}</span>
           <span className={`save-state ${dirty ? 'unsaved' : ''}`}>
+            {dirty ? <span className="unsaved-dot" /> : <CheckCircle2 size={12} />}
             {dirty
               ? 'Unsaved edits'
               : info
@@ -1043,15 +1054,23 @@ export default function App() {
           </span>
         </div>
         <div className="header-actions">
-          <button className="quiet-button" onClick={() => void showRecovery()}>
-            History
+          <button
+            className="quiet-button utility-action"
+            aria-label="History"
+            title="History"
+            onClick={() => void showRecovery()}
+          >
+            <History size={16} />
+            <span>History</span>
           </button>
           <button
-            className="quiet-button"
+            className="quiet-button utility-action"
+            aria-label="Shortcuts"
             title="Keyboard shortcuts (?)"
             onClick={() => setShortcutsOpen(true)}
           >
-            Shortcuts
+            <Keyboard size={16} />
+            <span>Shortcuts</span>
           </button>
           <div className="project-dropdown">
             <button
@@ -1059,7 +1078,7 @@ export default function App() {
               onClick={() => setProjectMenu((v) => !v)}
               aria-expanded={projectMenu}
             >
-              Project <ChevronDown size={13} />
+              <FolderOpen size={15} /> Project <ChevronDown size={12} />
             </button>
             {projectMenu && (
               <div className="dropdown-menu">
@@ -1090,22 +1109,29 @@ export default function App() {
             )}
           </div>
           <button
-            className="quiet-button"
+            className="quiet-button file-action"
+            aria-label="Open WAV"
+            title="Open WAV (Ctrl+O)"
             onClick={() => void chooseAudio()}
             disabled={loading || exporting}
           >
             <FolderOpen size={15} />
-            Open WAV
+            <span>Open WAV</span>
           </button>
           <button
             className="quiet-button separation-launch"
+            aria-label="Separate sounds"
+            title="Separate sounds"
             onClick={() => setSeparationOpen(true)}
             disabled={loading || exporting}
           >
-            <AudioLines size={16} /> Separate sounds
+            <AudioLines size={16} />
+            <span>Separate sounds</span>
           </button>
           <button
             className="export-button"
+            aria-label="Export audio"
+            title="Export audio (Ctrl+E)"
             onClick={() => {
               setExportError('');
               setExportMode(mode);
@@ -1114,7 +1140,7 @@ export default function App() {
             disabled={!info || loading || !!pendingProject}
           >
             <Download size={15} />
-            Export audio
+            <span>Export audio</span>
           </button>
         </div>
       </header>
@@ -1187,6 +1213,12 @@ export default function App() {
               {formatTime(cursor.sample / info.sampleRate)}
               <span>/</span>
               {Math.round(cursor.hz).toLocaleString()} Hz
+              {identifyNote(cursor.hz) && (
+                <>
+                  <span>/</span>
+                  {identifyNote(cursor.hz)!.name} · MIDI {identifyNote(cursor.hz)!.midi}
+                </>
+              )}
             </>
           ) : (
             <span>Time × frequency</span>
@@ -1269,16 +1301,11 @@ export default function App() {
           <div className="layers-list">
             {layers.length === 0 ? (
               <div className="layers-empty">
-                <div className="layer-empty-lines">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-                <p>Your edits live here.</p>
-                <span>
-                  Select frequencies, then create
-                  <br />a gain layer in the inspector.
+                <span className="empty-layer-icon">
+                  <Layers size={25} strokeWidth={1.4} />
                 </span>
+                <p>No layers yet</p>
+                <span>Select a region, then create a gain layer.</span>
               </div>
             ) : (
               [...layers].reverse().map((l) => {
@@ -1352,7 +1379,7 @@ export default function App() {
             )}
           </div>
           <div className="source-layer">
-            <span className="source-layer-dot" />
+            <ShieldCheck size={16} className="source-protected" />
             <div>
               <strong>Original source</strong>
               <span>Read only · always preserved</span>
@@ -1390,7 +1417,13 @@ export default function App() {
               </div>
               <div>
                 <dt>Correlation</dt>
-                <dd>{stats?.correlation != null ? stats.correlation.toFixed(3) : 'Undefined'}</dd>
+                <dd>
+                  {!stats
+                    ? '—'
+                    : stats.correlation != null
+                      ? stats.correlation.toFixed(3)
+                      : 'Undefined'}
+                </dd>
               </div>
             </dl>
             {info && (
@@ -1417,6 +1450,9 @@ export default function App() {
             </span>
           </div>
           <SpectralCanvas
+            engine={engine}
+            name={name}
+            loading={loading}
             info={info}
             view={view}
             analysis={analysis}
@@ -1459,7 +1495,7 @@ export default function App() {
               className={tab === 'edit' ? 'active' : ''}
               onClick={() => setTab('edit')}
             >
-              Edit
+              <SlidersHorizontal size={14} /> Edit
             </button>
             <button
               role="tab"
@@ -1467,7 +1503,7 @@ export default function App() {
               className={tab === 'analyze' ? 'active' : ''}
               onClick={() => setTab('analyze')}
             >
-              Analyze
+              <Activity size={14} /> Analyze
             </button>
             <button
               role="tab"
@@ -1475,7 +1511,7 @@ export default function App() {
               className={tab === 'restore' ? 'active' : ''}
               onClick={() => setTab('restore')}
             >
-              Restore
+              <Sparkles size={14} /> Restore
             </button>
             <button
               role="tab"
@@ -1483,14 +1519,17 @@ export default function App() {
               className={tab === 'collaborate' ? 'active' : ''}
               onClick={() => setTab('collaborate')}
             >
-              Share
+              <Share2 size={14} /> Share
             </button>
           </div>
           <div className="inspector-content">
             {tab === 'edit' ? (
               <>
                 <div className="section-heading">
-                  <h3>{selectedId ? 'Edit layer' : 'Selection'}</h3>
+                  <h3>
+                    <SquareDashed size={14} />
+                    {selectedId ? 'Edit layer' : 'Selection'}
+                  </h3>
                   {selection && (
                     <button
                       aria-label="Zoom to selection"
@@ -1618,7 +1657,10 @@ export default function App() {
                 </label>
                 <div className="inspector-section">
                   <div className="section-heading">
-                    <h3>Spectral gain</h3>
+                    <h3>
+                      <SlidersHorizontal size={14} />
+                      Spectral gain
+                    </h3>
                     <span className="unit-label">Nondestructive</span>
                   </div>
                   <label className="layer-name-field">
@@ -2188,6 +2230,13 @@ export default function App() {
               }}
               title={m === 'removed' ? 'Original minus processed result' : 'Monitor ' + m}
             >
+              {m === 'original' ? (
+                <FileAudio size={13} />
+              ) : m === 'result' ? (
+                <AudioLines size={13} />
+              ) : (
+                <Eraser size={13} />
+              )}
               {m === 'original' ? 'Original' : m === 'result' ? 'Result' : 'Removed'}
             </button>
           ))}

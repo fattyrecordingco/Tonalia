@@ -474,6 +474,41 @@ fn save_project(path: String, contents: String, state: State<AppState>) -> Resul
     result
 }
 #[tauri::command]
+fn save_midi(path: String, bytes: Vec<u8>, state: State<AppState>) -> Result<(), String> {
+    if bytes.len() > 16 * 1024 * 1024 || bytes.len() < 14 || &bytes[..8] != b"MThd\0\0\0\x06" {
+        return Err("Invalid MIDI file or file exceeds 16 MiB".into());
+    }
+    let destination = PathBuf::from(path);
+    for input in state
+        .sources
+        .lock()
+        .map_err(|_| "Source registry unavailable")?
+        .values()
+    {
+        reject_source_output(&destination, &input.path)?;
+    }
+    let temporary = destination.with_file_name(format!(
+        ".tonalia-midi-{}-{}.tmp",
+        std::process::id(),
+        IDS.fetch_add(1, Ordering::Relaxed)
+    ));
+    let result = (|| -> Result<(), String> {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+            .map_err(|e| e.to_string())?;
+        file.write_all(&bytes).map_err(|e| e.to_string())?;
+        file.sync_all().map_err(|e| e.to_string())?;
+        drop(file);
+        fs::rename(&temporary, &destination).map_err(|e| e.to_string())
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(temporary);
+    }
+    result
+}
+#[tauri::command]
 fn read_project(path: String) -> Result<String, String> {
     let meta = fs::metadata(&path).map_err(|e| e.to_string())?;
     if meta.len() > 4 * 1024 * 1024 {
@@ -615,6 +650,7 @@ fn main() {
             export_audio,
             cancel_export,
             save_project,
+            save_midi,
             read_project
         ])
         .run(tauri::generate_context!())

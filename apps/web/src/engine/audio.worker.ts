@@ -12,6 +12,15 @@ import init, {
   validate,
 } from '../wasm/tonalia_wasm';
 import type { WavInfo, SourceRef, Layer, Analysis, Monitor } from '../types';
+import {
+  detectPitch,
+  NoteTracker,
+  PITCH_RATE,
+  PITCH_WINDOW,
+  PITCH_HOP,
+  type NoteRequest,
+  type NoteConversion,
+} from './notes';
 const ready = init();
 let source: SourceRef | null = null,
   info: WavInfo | null = null,
@@ -19,6 +28,7 @@ let source: SourceRef | null = null,
   viewEpoch = 0,
   exportEpoch = 0,
   openEpoch = 0;
+let noteEpoch = 0;
 let ioId = 0;
 const pendingReads = new Map<
   number,
@@ -294,6 +304,72 @@ async function captureNoiseProfile(start: number, end: number): Promise<number[]
     fft.free();
   }
 }
+async function convertNotes(
+  args: NoteRequest & { layers: Layer[] },
+): Promise<NoteConversion | null> {
+  const i = info!;
+  const expected = epoch,
+    own = ++noteEpoch;
+  const start = Math.max(0, Math.floor(args.start)),
+    end = Math.min(i.frames, Math.ceil(args.end));
+  if (
+    ![start, end, args.thresholdDb].every(Number.isFinite) ||
+    end <= start ||
+    !['original', 'result'].includes(args.signal) ||
+    args.thresholdDb < -90 ||
+    args.thresholdDb > 0 ||
+    (args.channel !== null &&
+      (!Number.isInteger(args.channel) || args.channel < 0 || args.channel >= i.channels))
+  )
+    throw new Error('Choose a valid note conversion range and channel.');
+  const channels = Array.from({ length: i.channels }, (_, ch) => ch).filter(
+    (ch) => args.channel === null || args.channel === ch,
+  );
+  const trackers = channels.map((ch) => new NoteTracker(ch, i.sampleRate * 0.06));
+  const hop = (PITCH_HOP / PITCH_RATE) * i.sampleRate;
+  const count = Math.ceil((end - start) / hop);
+  for (let frame = 0; frame < count; frame += 50) {
+    if (own !== noteEpoch || expected !== epoch) return null;
+    const frames = Math.min(50, count - frame);
+    const position = start + frame * hop - (PITCH_WINDOW / 2 / PITCH_RATE) * i.sampleRate;
+    const length = (frames - 1) * PITCH_HOP + PITCH_WINDOW;
+    const a = Math.max(start, Math.floor(position) - 64);
+    const b = Math.min(end, Math.ceil(position + (length / PITCH_RATE) * i.sampleRate) + 64);
+    const pcm = await (args.signal === 'original'
+      ? samples(a, b, expected)
+      : processed(a, b, args.layers, expected));
+    if (own !== noteEpoch || expected !== epoch) return null;
+    const reduced = resample(pcm, a, position, length, i.sampleRate, PITCH_RATE, i.channels);
+    const window = new Float32Array(PITCH_WINDOW);
+    for (let f = 0; f < frames; f++) {
+      for (let ch = 0; ch < channels.length; ch++) {
+        for (let j = 0; j < PITCH_WINDOW; j++)
+          window[j] = reduced[(f * PITCH_HOP + j) * i.channels + channels[ch]];
+        const center = start + (frame + f) * hop;
+        trackers[ch].push(
+          detectPitch(window, args.thresholdDb),
+          Math.max(start, center - hop / 2),
+          Math.min(end, center + hop / 2),
+        );
+      }
+    }
+    if (trackers.reduce((n, t) => n + t.notes.length, 0) > 100000)
+      throw new Error('Too many notes. Convert a shorter time selection.');
+    self.postMessage({ event: 'noteProgress', progress: Math.min(1, (frame + frames) / count) });
+    await delay();
+  }
+  if (own !== noteEpoch || expected !== epoch) return null;
+  trackers.forEach((t) => t.flush());
+  return {
+    notes: trackers
+      .flatMap((t) => t.notes)
+      .sort((a, b) => a.start - b.start || a.channel - b.channel),
+    start,
+    end,
+    sampleRate: i.sampleRate,
+    signal: args.signal,
+  };
+}
 async function writeChunk(bytes: Uint8Array, requestId: number) {
   const id = ++ioId;
   const done = new Promise<void>((resolve, reject) => pendingWrites.set(id, { resolve, reject }));
@@ -359,6 +435,10 @@ self.onmessage = async (e: MessageEvent) => {
     viewEpoch++;
     return;
   }
+  if (msg.method === 'cancelNotes') {
+    noteEpoch++;
+    return;
+  }
   try {
     await ready;
     let value: unknown;
@@ -375,6 +455,7 @@ self.onmessage = async (e: MessageEvent) => {
         source = candidate;
         info = metadata;
         epoch++;
+        noteEpoch++;
         viewEpoch++;
         const expected = epoch;
         value = info;
@@ -390,6 +471,10 @@ self.onmessage = async (e: MessageEvent) => {
         break;
       case 'analyze':
         value = await analyze(msg.args, epoch);
+        break;
+      case 'convertNotes':
+        if (!info) throw new Error('Open a WAV before converting notes.');
+        value = await convertNotes(msg.args);
         break;
       case 'playback':
         value = await playback(msg.args, epoch);
